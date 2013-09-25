@@ -194,6 +194,10 @@ PHP_METHOD(Phalcon_Image_Adapter_GD, __construct){
 		if (phalcon_array_isset_long_fetch(&type, imageinfo, 2)) {
 			phalcon_update_property_this(this_ptr, SL("_type"), type TSRMLS_CC);
 		}
+		else {
+			PHALCON_INIT_VAR(type);
+			ZVAL_LONG(type, -1);
+		}
 
 		if (phalcon_array_isset_string_fetch(&mime, imageinfo, SS("mime"))) {
 			phalcon_update_property_this(this_ptr, SL("_mime"), mime TSRMLS_CC);
@@ -389,13 +393,9 @@ PHP_METHOD(Phalcon_Image_Adapter_GD, _liquidRescale){
 
 	zval *width, *height, *delta_x = NULL, *rigidity = NULL;
 
-	PHALCON_MM_GROW();
+	phalcon_fetch_params(0, 4, 0, &width, &height, &delta_x, &rigidity);
 
-	phalcon_fetch_params(1, 4, 0, &width, &height, &delta_x, &rigidity);
-
-	PHALCON_THROW_EXCEPTION_STR(phalcon_image_exception_ce, "The GD does not support liquidRescale");
-
-	RETURN_THIS();
+	PHALCON_THROW_EXCEPTION_STRW(phalcon_image_exception_ce, "The GD does not support liquidRescale");
 }
 
 /**
