@@ -102,7 +102,7 @@ PHP_METHOD(Phalcon_DI, __construct){
 
 	default_di = phalcon_fetch_static_property_ce(phalcon_di_ce, SL("_default") TSRMLS_CC);
 	if (!zend_is_true(default_di)) {
-		phalcon_update_static_property(SL("phalcon\\di"), SL("_default"), this_ptr TSRMLS_CC);
+		phalcon_update_static_property_ce(phalcon_di_ce, SL("_default"), this_ptr TSRMLS_CC);
 	}
 }
 
@@ -128,8 +128,7 @@ PHP_METHOD(Phalcon_DI, set){
 	PHALCON_MM_GROW();
 
 	if (!shared) {
-		PHALCON_INIT_VAR(shared);
-		ZVAL_FALSE(shared);
+		shared = PHALCON_GLOBAL(z_false);
 	}
 
 	object_init_ex(return_value, phalcon_di_service_ce);
@@ -149,7 +148,7 @@ PHP_METHOD(Phalcon_DI, set){
  */
 PHP_METHOD(Phalcon_DI, setShared){
 
-	zval *name, *definition, *shared;
+	zval *name, *definition;
 
 	phalcon_fetch_params(0, 2, 0, &name, &definition);
 	
@@ -160,11 +159,8 @@ PHP_METHOD(Phalcon_DI, setShared){
 	
 	PHALCON_MM_GROW();
 
-	PHALCON_INIT_VAR(shared);
-	ZVAL_TRUE(shared);
-	
 	object_init_ex(return_value, phalcon_di_service_ce);
-	phalcon_call_method_p3_noret(return_value, "__construct", name, definition, shared);
+	phalcon_call_method_p3_noret(return_value, "__construct", name, definition, PHALCON_GLOBAL(z_true));
 	
 	phalcon_update_property_array(this_ptr, SL("_services"), name, return_value TSRMLS_CC);
 	
@@ -216,8 +212,7 @@ PHP_METHOD(Phalcon_DI, attempt){
 		PHALCON_MM_GROW();
 
 		if (!shared) {
-			PHALCON_INIT_VAR(shared);
-			ZVAL_FALSE(shared);
+			shared = PHALCON_GLOBAL(z_false);
 		}
 
 		object_init_ex(return_value, phalcon_di_service_ce);
@@ -252,7 +247,7 @@ PHP_METHOD(Phalcon_DI, setRaw){
 	
 	phalcon_update_property_array(this_ptr, SL("_services"), name, raw_definition TSRMLS_CC);
 	
-	RETURN_CCTORW(raw_definition);
+	RETURN_CTORW(raw_definition);
 }
 
 /**
@@ -277,7 +272,7 @@ PHP_METHOD(Phalcon_DI, getRaw){
 
 	services = phalcon_fetch_nproperty_this(this_ptr, SL("_services"), PH_NOISY_CC);
 	if (phalcon_array_isset_fetch(&service, services, name)) {
-		phalcon_call_method_p0_ex(return_value, return_value_ptr, service, "getdefinition");
+		phalcon_return_call_method_p0(service, "getdefinition");
 		RETURN_MM();
 	}
 	
@@ -343,7 +338,7 @@ PHP_METHOD(Phalcon_DI, get){
 	PHALCON_MM_GROW();
 
 	if (!parameters) {
-		PHALCON_INIT_VAR(parameters);
+		parameters = PHALCON_GLOBAL(z_null);
 	}
 
 	PHALCON_INIT_VAR(instance);
@@ -414,14 +409,14 @@ PHP_METHOD(Phalcon_DI, getShared){
 	 */
 	shared_instances = phalcon_fetch_nproperty_this(this_ptr, SL("_sharedInstances"), PH_NOISY_CC);
 	if (phalcon_array_isset_fetch(&instance, shared_instances, name)) {
-		phalcon_update_property_bool(this_ptr, SL("_freshInstance"), 0 TSRMLS_CC);
+		phalcon_update_property_this(this_ptr, SL("_freshInstance"), PHALCON_GLOBAL(z_false) TSRMLS_CC);
 		RETURN_CTORW(instance);
 	}
 	
 	PHALCON_MM_GROW();
 
 	if (!parameters) {
-		PHALCON_INIT_VAR(parameters);
+		parameters = PHALCON_GLOBAL(z_null);
 	}
 
 	/**
@@ -433,7 +428,7 @@ PHP_METHOD(Phalcon_DI, getShared){
 	 * Save the instance in the first level shared
 	 */
 	phalcon_update_property_array(this_ptr, SL("_sharedInstances"), name, return_value TSRMLS_CC);
-	phalcon_update_property_bool(this_ptr, SL("_freshInstance"), 1 TSRMLS_CC);
+	phalcon_update_property_this(this_ptr, SL("_freshInstance"), PHALCON_GLOBAL(z_true) TSRMLS_CC);
 	PHALCON_MM_RESTORE();
 }
 
@@ -542,7 +537,7 @@ PHP_METHOD(Phalcon_DI, __call){
 	phalcon_fetch_params(1, 1, 1, &method, &arguments);
 	
 	if (!arguments) {
-		PHALCON_INIT_VAR(arguments);
+		arguments = PHALCON_GLOBAL(z_null);
 	}
 	
 	/** 
@@ -607,7 +602,7 @@ PHP_METHOD(Phalcon_DI, setDefault){
 
 	phalcon_fetch_params(0, 1, 0, &dependency_injector);
 	
-	phalcon_update_static_property(SL("phalcon\\di"), SL("_default"), dependency_injector TSRMLS_CC);
+	phalcon_update_static_property_ce(phalcon_di_ce, SL("_default"), dependency_injector TSRMLS_CC);
 	
 }
 
@@ -632,7 +627,7 @@ PHP_METHOD(Phalcon_DI, reset){
 	zval *null_value;
 
 	ALLOC_INIT_ZVAL(null_value);
-	phalcon_update_static_property(SL("phalcon\\di"), SL("_default"), null_value TSRMLS_CC);
+	phalcon_update_static_property_ce(phalcon_di_ce, SL("_default"), null_value TSRMLS_CC);
 	zval_ptr_dtor(&null_value);
 }
 

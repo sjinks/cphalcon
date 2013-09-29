@@ -72,19 +72,11 @@ PHP_METHOD(Phalcon_CLI_Console, __construct){
 
 	zval *dependency_injector = NULL;
 
-	PHALCON_MM_GROW();
-
-	phalcon_fetch_params(1, 0, 1, &dependency_injector);
+	phalcon_fetch_params(0, 0, 1, &dependency_injector);
 	
-	if (!dependency_injector) {
-		PHALCON_INIT_VAR(dependency_injector);
-	}
-	
-	if (Z_TYPE_P(dependency_injector) == IS_OBJECT) {
+	if (dependency_injector && Z_TYPE_P(dependency_injector) == IS_OBJECT) {
 		phalcon_update_property_this(this_ptr, SL("_dependencyInjector"), dependency_injector TSRMLS_CC);
 	}
-	
-	PHALCON_MM_RESTORE();
 }
 
 /**
@@ -245,7 +237,7 @@ PHP_METHOD(Phalcon_CLI_Console, handle){
 	zval *service = NULL, *router, *module_name, *event_name = NULL;
 	zval *status = NULL, *modules, *exception_msg = NULL, *module;
 	zval *path, *class_name = NULL, *module_object, *task_name;
-	zval *action_name, *params, *dispatcher, *task;
+	zval *action_name, *params, *dispatcher;
 
 	PHALCON_MM_GROW();
 
@@ -377,14 +369,13 @@ PHP_METHOD(Phalcon_CLI_Console, handle){
 		}
 	}
 	
-	PHALCON_INIT_VAR(task);
-	phalcon_call_method(task, dispatcher, "dispatch");
+	phalcon_return_call_method_p0(dispatcher, "dispatch");
 	if (Z_TYPE_P(events_manager) == IS_OBJECT) {
 		PHALCON_INIT_NVAR(event_name);
 		ZVAL_STRING(event_name, "console:afterHandleTask", 1);
-		phalcon_call_method_p3_noret(events_manager, "fire", event_name, this_ptr, task);
+		phalcon_call_method_p3_noret(events_manager, "fire", event_name, this_ptr, (return_value_ptr ? *return_value_ptr : return_value));
 	}
 	
-	RETURN_CCTOR(task);
+	PHALCON_MM_RESTORE();
 }
 

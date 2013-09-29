@@ -77,7 +77,7 @@ PHP_METHOD(Phalcon_Session_Adapter, __construct){
 	phalcon_fetch_params(1, 0, 1, &options);
 	
 	if (!options) {
-		PHALCON_INIT_VAR(options);
+		options = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(options) == IS_ARRAY) { 
@@ -146,11 +146,8 @@ PHP_METHOD(Phalcon_Session_Adapter, getOptions){
 
 	zval *options;
 
-	PHALCON_MM_GROW();
-
-	PHALCON_OBS_VAR(options);
-	phalcon_read_property_this(&options, this_ptr, SL("_options"), PH_NOISY_CC);
-	RETURN_CCTOR(options);
+	options = phalcon_fetch_nproperty_this(this_ptr, SL("_options"), PH_NOISY_CC);
+	RETURN_ZVAL(options, 1, 0);
 }
 
 /**
@@ -170,7 +167,7 @@ PHP_METHOD(Phalcon_Session_Adapter, get){
 	phalcon_fetch_params(1, 1, 1, &index, &default_value);
 	
 	if (!default_value) {
-		PHALCON_INIT_VAR(default_value);
+		default_value = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_OBS_VAR(unique_id);
@@ -184,11 +181,11 @@ PHP_METHOD(Phalcon_Session_Adapter, get){
 		PHALCON_OBS_VAR(value);
 		phalcon_array_fetch(&value, _SESSION, key, PH_NOISY);
 		if (PHALCON_IS_NOT_EMPTY(value)) {
-			RETURN_CCTOR(value);
+			RETURN_CTOR(value);
 		}
 	}
 	
-	RETURN_CCTOR(default_value);
+	RETURN_CTOR(default_value);
 }
 
 /**

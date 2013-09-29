@@ -64,24 +64,20 @@ PHP_METHOD(Phalcon_Validation_Validator, __construct){
 
 	zval *options = NULL;
 
-	PHALCON_MM_GROW();
-
-	phalcon_fetch_params(1, 0, 1, &options);
+	phalcon_fetch_params(0, 0, 1, &options);
 	
 	if (!options) {
-		PHALCON_INIT_VAR(options);
+		options = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(options) != IS_ARRAY) { 
 		if (Z_TYPE_P(options) != IS_NULL) {
-			PHALCON_THROW_EXCEPTION_STR(phalcon_validation_exception_ce, "The attribute must be a string");
+			PHALCON_THROW_EXCEPTION_STRW(phalcon_validation_exception_ce, "The attribute must be a string");
 			return;
 		}
 	} else {
 		phalcon_update_property_this(this_ptr, SL("_options"), options TSRMLS_CC);
 	}
-	
-	PHALCON_MM_RESTORE();
 }
 
 /**
@@ -120,21 +116,14 @@ PHP_METHOD(Phalcon_Validation_Validator, getOption){
 
 	zval *key, *options, *value;
 
-	PHALCON_MM_GROW();
-
-	phalcon_fetch_params(1, 1, 0, &key);
+	phalcon_fetch_params(0, 1, 0, &key);
 	
-	PHALCON_OBS_VAR(options);
-	phalcon_read_property_this(&options, this_ptr, SL("_options"), PH_NOISY_CC);
-	if (Z_TYPE_P(options) == IS_ARRAY) { 
-		if (phalcon_array_isset(options, key)) {
-			PHALCON_OBS_VAR(value);
-			phalcon_array_fetch(&value, options, key, PH_NOISY);
-			RETURN_CCTOR(value);
-		}
+	options = phalcon_fetch_nproperty_this(this_ptr, SL("_options"), PH_NOISY_CC);
+	if (phalcon_array_isset_fetch(&value, options, key)) {
+		RETURN_ZVAL(value, 1, 0);
 	}
 	
-	RETURN_MM_NULL();
+	RETURN_NULL();
 }
 
 /**

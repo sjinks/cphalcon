@@ -95,14 +95,13 @@ PHP_METHOD(Phalcon_Flash_Session, getDI){
 PHP_METHOD(Phalcon_Flash_Session, _getSessionMessages){
 
 	zval *remove, *dependency_injector, *service;
-	zval *session, *index_name, *messages;
+	zval *session, *index_name;
 
 	PHALCON_MM_GROW();
 
 	phalcon_fetch_params(1, 1, 0, &remove);
 	
-	PHALCON_OBS_VAR(dependency_injector);
-	phalcon_read_property_this(&dependency_injector, this_ptr, SL("_dependencyInjector"), PH_NOISY_CC);
+	dependency_injector = phalcon_fetch_nproperty_this(this_ptr, SL("_dependencyInjector"), PH_NOISY_CC);
 	if (unlikely(Z_TYPE_P(dependency_injector) != IS_OBJECT)) {
 		PHALCON_THROW_EXCEPTION_STR(phalcon_flash_exception_ce, "A dependency injection container is required to access the 'session' service");
 		return;
@@ -118,13 +117,12 @@ PHP_METHOD(Phalcon_Flash_Session, _getSessionMessages){
 	PHALCON_INIT_VAR(index_name);
 	ZVAL_STRING(index_name, "_flashMessages", 1);
 	
-	PHALCON_INIT_VAR(messages);
-	phalcon_call_method_p1(messages, session, "get", index_name);
+	phalcon_return_call_method_p1(session, "get", index_name);
 	if (PHALCON_IS_TRUE(remove)) {
 		phalcon_call_method_p1_noret(session, "remove", index_name);
 	}
 	
-	RETURN_CCTOR(messages);
+	RETURN_MM();
 }
 
 /**
@@ -141,8 +139,7 @@ PHP_METHOD(Phalcon_Flash_Session, _setSessionMessages){
 
 	phalcon_fetch_params(1, 1, 0, &messages);
 	
-	PHALCON_OBS_VAR(dependency_injector);
-	phalcon_read_property_this(&dependency_injector, this_ptr, SL("_dependencyInjector"), PH_NOISY_CC);
+	dependency_injector = phalcon_fetch_nproperty_this(this_ptr, SL("_dependencyInjector"), PH_NOISY_CC);
 	if (unlikely(Z_TYPE_P(dependency_injector) != IS_OBJECT)) {
 		PHALCON_THROW_EXCEPTION_STR(phalcon_flash_exception_ce, "A dependency injection container is required to access the 'session' service");
 		return;
@@ -159,7 +156,7 @@ PHP_METHOD(Phalcon_Flash_Session, _setSessionMessages){
 	ZVAL_STRING(index_name, "_flashMessages", 1);
 	phalcon_call_method_p2_noret(session, "set", index_name, messages);
 	
-	RETURN_CCTOR(messages);
+	RETURN_CTOR(messages);
 }
 
 /**
@@ -170,17 +167,14 @@ PHP_METHOD(Phalcon_Flash_Session, _setSessionMessages){
  */
 PHP_METHOD(Phalcon_Flash_Session, message){
 
-	zval *type, *message, *remove, *messages = NULL, *empty_array;
+	zval *type, *message, *messages = NULL, *empty_array;
 
 	PHALCON_MM_GROW();
 
 	phalcon_fetch_params(1, 2, 0, &type, &message);
 	
-	PHALCON_INIT_VAR(remove);
-	ZVAL_BOOL(remove, 0);
-	
 	PHALCON_INIT_VAR(messages);
-	phalcon_call_method_p1(messages, this_ptr, "_getsessionmessages", remove);
+	phalcon_call_method_p1(messages, this_ptr, "_getsessionmessages", PHALCON_GLOBAL(z_false));
 	if (Z_TYPE_P(messages) != IS_ARRAY) { 
 		PHALCON_INIT_NVAR(messages);
 		array_init(messages);
@@ -189,7 +183,7 @@ PHP_METHOD(Phalcon_Flash_Session, message){
 	if (!phalcon_array_isset(messages, type)) {
 		PHALCON_INIT_VAR(empty_array);
 		array_init(empty_array);
-		phalcon_array_update_zval(&messages, type, &empty_array, PH_COPY | PH_SEPARATE);
+		phalcon_array_update_zval(&messages, type, &empty_array, PH_COPY);
 	}
 	
 	phalcon_array_update_append_multi_2(&messages, type, message, 0);
@@ -214,22 +208,19 @@ PHP_METHOD(Phalcon_Flash_Session, getMessages){
 	phalcon_fetch_params(1, 0, 2, &type, &remove);
 	
 	if (!type) {
-		PHALCON_INIT_VAR(type);
+		type = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (!remove) {
-		PHALCON_INIT_VAR(remove);
-		ZVAL_BOOL(remove, 1);
+		remove = PHALCON_GLOBAL(z_true);
 	}
 	
 	PHALCON_INIT_VAR(messages);
 	phalcon_call_method_p1(messages, this_ptr, "_getsessionmessages", remove);
 	if (Z_TYPE_P(messages) == IS_ARRAY) { 
 		if (likely(Z_TYPE_P(type) == IS_STRING)) {
-			if (phalcon_array_isset(messages, type)) {
-				PHALCON_OBS_VAR(return_messages);
-				phalcon_array_fetch(&return_messages, messages, type, PH_NOISY);
-				RETURN_CCTOR(return_messages);
+			if (phalcon_array_isset_fetch(&return_messages, messages, type)) {
+				RETURN_CTOR(return_messages);
 			}
 
 			RETURN_MM_EMPTY_ARRAY();
@@ -259,8 +250,7 @@ PHP_METHOD(Phalcon_Flash_Session, output){
 	phalcon_fetch_params(1, 0, 1, &remove);
 	
 	if (!remove) {
-		PHALCON_INIT_VAR(remove);
-		ZVAL_BOOL(remove, 1);
+		remove = PHALCON_GLOBAL(z_true);
 	}
 	
 	PHALCON_INIT_VAR(messages);
@@ -283,4 +273,3 @@ PHP_METHOD(Phalcon_Flash_Session, output){
 	
 	PHALCON_MM_RESTORE();
 }
-

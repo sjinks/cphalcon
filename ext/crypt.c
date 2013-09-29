@@ -431,7 +431,7 @@ PHP_METHOD(Phalcon_Crypt, encrypt){
 	if (!key || Z_TYPE_P(key) == IS_NULL) {
 		encrypt_key = phalcon_fetch_nproperty_this(this_ptr, SL("_key"), PH_NOISY_CC);
 	} else {
-		PHALCON_CPY_WRT(encrypt_key, key);
+		PHALCON_CPY_WRT_CTOR(encrypt_key, key);
 		if (Z_TYPE_P(encrypt_key) != IS_STRING) {
 			convert_to_string(encrypt_key);
 		}
@@ -594,7 +594,7 @@ PHP_METHOD(Phalcon_Crypt, encryptBase64){
 	phalcon_fetch_params(1, 1, 1, &text, &key);
 	
 	if (!key) {
-		PHALCON_INIT_VAR(key);
+		key = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_OBS_VAR(encrypted);
@@ -619,7 +619,7 @@ PHP_METHOD(Phalcon_Crypt, decryptBase64){
 	phalcon_fetch_params(1, 1, 1, &text, &key);
 	
 	if (!key) {
-		PHALCON_INIT_VAR(key);
+		key = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_INIT_VAR(decrypt_text);
@@ -636,10 +636,10 @@ PHP_METHOD(Phalcon_Crypt, decryptBase64){
 PHP_METHOD(Phalcon_Crypt, getAvailableCiphers){
 
 
-	PHALCON_MM_GROW();
-
-	phalcon_call_func(return_value, "mcrypt_list_algorithms");
-	RETURN_MM();
+	phalcon_call_func_params(return_value, return_value_ptr, SL("mcrypt_list_algorithms") TSRMLS_CC, 0);
+	if (return_value_ptr && EG(exception)) {
+		ALLOC_INIT_ZVAL(*return_value_ptr);
+	}
 }
 
 /**
@@ -650,8 +650,8 @@ PHP_METHOD(Phalcon_Crypt, getAvailableCiphers){
 PHP_METHOD(Phalcon_Crypt, getAvailableModes){
 
 
-	PHALCON_MM_GROW();
-
-	phalcon_call_func(return_value, "mcrypt_list_modes");
-	RETURN_MM();
+	phalcon_call_func_params(return_value, return_value_ptr, SL("mcrypt_list_modes") TSRMLS_CC, 0);
+	if (return_value_ptr && EG(exception)) {
+		ALLOC_INIT_ZVAL(*return_value_ptr);
+	}
 }

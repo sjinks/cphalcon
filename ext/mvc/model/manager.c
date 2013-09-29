@@ -201,7 +201,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getCustomEventsManager){
 		if (phalcon_array_isset(custom_events_manager, class_name)) {
 			PHALCON_OBS_VAR(events_manager);
 			phalcon_array_fetch(&events_manager, custom_events_manager, class_name, PH_NOISY);
-			RETURN_CCTOR(events_manager);
+			RETURN_CTOR(events_manager);
 		}
 	}
 	
@@ -277,23 +277,16 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, initialize){
 PHP_METHOD(Phalcon_Mvc_Model_Manager, isInitialized){
 
 	zval *model_name, *initialized, *lowercased;
-	zval *is_intitialized = NULL;
-	zval *r0 = NULL;
 
-	PHALCON_MM_GROW();
-
-	phalcon_fetch_params(1, 1, 0, &model_name);
+	phalcon_fetch_params(0, 1, 0, &model_name);
 	
-	PHALCON_OBS_VAR(initialized);
-	phalcon_read_property_this(&initialized, this_ptr, SL("_initialized"), PH_NOISY_CC);
+	initialized = phalcon_fetch_nproperty_this(this_ptr, SL("_initialized"), PH_NOISY_CC);
 	
-	PHALCON_INIT_VAR(lowercased);
+	ALLOC_INIT_ZVAL(lowercased);
 	phalcon_fast_strtolower(lowercased, model_name);
 	
-	PHALCON_INIT_VAR(r0);
-	ZVAL_BOOL(r0, phalcon_array_isset(initialized, lowercased));
-	PHALCON_CPY_WRT(is_intitialized, r0);
-	RETURN_NCTOR(is_intitialized);
+	RETVAL_BOOL(phalcon_array_isset(initialized, lowercased));
+	zval_ptr_dtor(&lowercased);
 }
 
 /**
@@ -326,8 +319,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, load){
 	phalcon_fetch_params(1, 1, 1, &model_name, &new_instance);
 	
 	if (!new_instance) {
-		PHALCON_INIT_VAR(new_instance);
-		ZVAL_BOOL(new_instance, 0);
+		new_instance = PHALCON_GLOBAL(z_false);
 	}
 	
 	PHALCON_OBS_VAR(initialized);
@@ -357,7 +349,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, load){
 			RETURN_MM();
 		}
 	
-		RETURN_CCTOR(model);
+		RETURN_CTOR(model);
 	}
 	
 	/** 
@@ -442,7 +434,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getModelSource){
 		if (phalcon_array_isset(sources, entity_name)) {
 			PHALCON_OBS_VAR(source);
 			phalcon_array_fetch(&source, sources, entity_name, PH_NOISY);
-			RETURN_CCTOR(source);
+			RETURN_CTOR(source);
 		}
 	}
 	
@@ -453,7 +445,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getModelSource){
 	phalcon_uncamelize(source, class_name);
 	phalcon_update_property_array(this_ptr, SL("_sources"), entity_name, source TSRMLS_CC);
 	
-	RETURN_CCTOR(source);
+	RETURN_CTOR(source);
 }
 
 /**
@@ -515,7 +507,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getModelSchema){
 		if (phalcon_array_isset(schemas, entity_name)) {
 			PHALCON_OBS_VAR(schema);
 			phalcon_array_fetch(&schema, schemas, entity_name, PH_NOISY);
-			RETURN_CCTOR(schema);
+			RETURN_CTOR(schema);
 		}
 	}
 	
@@ -653,7 +645,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getWriteConnection){
 	}
 	
 	PHALCON_VERIFY_INTERFACE(connection, phalcon_db_adapterinterface_ce);
-	RETURN_CCTOR(connection);
+	RETURN_CTOR(connection);
 }
 
 /**
@@ -708,7 +700,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getReadConnection){
 	}
 	
 	PHALCON_VERIFY_INTERFACE(connection, phalcon_db_adapterinterface_ce);
-	RETURN_CCTOR(connection);
+	RETURN_CTOR(connection);
 }
 
 /**
@@ -739,7 +731,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getReadConnectionService){
 		if (phalcon_array_isset(connection_services, entity_name)) {
 			PHALCON_OBS_VAR(connection);
 			phalcon_array_fetch(&connection, connection_services, entity_name, PH_NOISY);
-			RETURN_CCTOR(connection);
+			RETURN_CTOR(connection);
 		}
 	}
 	
@@ -774,7 +766,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getWriteConnectionService){
 		if (phalcon_array_isset(connection_services, entity_name)) {
 			PHALCON_OBS_VAR(connection);
 			phalcon_array_fetch(&connection, connection_services, entity_name, PH_NOISY);
-			RETURN_CCTOR(connection);
+			RETURN_CTOR(connection);
 		}
 	}
 	
@@ -829,7 +821,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, notifyEvent){
 				PHALCON_INIT_NVAR(status);
 				phalcon_call_method_p2(status, behavior, "notify", event_name, model);
 				if (PHALCON_IS_FALSE(status)) {
-					RETURN_CCTOR(status);
+					RETURN_CTOR(status);
 				}
 	
 				zend_hash_move_forward_ex(ah0, &hp0);
@@ -851,7 +843,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, notifyEvent){
 		PHALCON_INIT_NVAR(status);
 		phalcon_call_method_p2(status, events_manager, "fire", fire_event_name, model);
 		if (PHALCON_IS_FALSE(status)) {
-			RETURN_CCTOR(status);
+			RETURN_CTOR(status);
 		}
 	}
 	
@@ -872,12 +864,12 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, notifyEvent){
 			PHALCON_INIT_NVAR(status);
 			phalcon_call_method_p2(status, custom_events_manager, "fire", fire_event_name, model);
 			if (PHALCON_IS_FALSE(status)) {
-				RETURN_CCTOR(status);
+				RETURN_CTOR(status);
 			}
 		}
 	}
 	
-	RETURN_CCTOR(status);
+	RETURN_CTOR(status);
 }
 
 /**
@@ -929,7 +921,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, missingMethod){
 				PHALCON_INIT_NVAR(result);
 				phalcon_call_method_p3(result, behavior, "missingmethod", model, event_name, data);
 				if (Z_TYPE_P(result) != IS_NULL) {
-					RETURN_CCTOR(result);
+					RETURN_CTOR(result);
 				}
 	
 				zend_hash_move_forward_ex(ah0, &hp0);
@@ -1045,7 +1037,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, isKeepingSnapshots){
 		if (phalcon_array_isset(keep_snapshots, entity_name)) {
 			PHALCON_OBS_VAR(is_keeping);
 			phalcon_array_fetch(&is_keeping, keep_snapshots, entity_name, PH_NOISY);
-			RETURN_CCTOR(is_keeping);
+			RETURN_CTOR(is_keeping);
 		}
 	}
 	
@@ -1096,7 +1088,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, isUsingDynamicUpdate){
 		if (phalcon_array_isset(dynamic_update, entity_name)) {
 			PHALCON_OBS_VAR(is_using);
 			phalcon_array_fetch(&is_using, dynamic_update, entity_name, PH_NOISY);
-			RETURN_CCTOR(is_using);
+			RETURN_CTOR(is_using);
 		}
 	}
 	
@@ -1127,7 +1119,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, addHasOne){
 	phalcon_fetch_params(1, 4, 1, &model, &fields, &referenced_model, &referenced_fields, &options);
 	
 	if (!options) {
-		PHALCON_INIT_VAR(options);
+		options = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_INIT_VAR(entity_name);
@@ -1258,7 +1250,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, addBelongsTo){
 	phalcon_fetch_params(1, 4, 1, &model, &fields, &referenced_model, &referenced_fields, &options);
 	
 	if (!options) {
-		PHALCON_INIT_VAR(options);
+		options = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_INIT_VAR(entity_name);
@@ -1388,7 +1380,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, addHasMany){
 	phalcon_fetch_params(1, 4, 1, &model, &fields, &referenced_model, &referenced_fields, &options);
 	
 	if (!options) {
-		PHALCON_INIT_VAR(options);
+		options = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_INIT_VAR(entity_name);
@@ -1523,7 +1515,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, addHasManyToMany){
 	phalcon_fetch_params(1, 7, 1, &model, &fields, &intermediate_model, &intermediate_fields, &intermediate_referenced_fields, &referenced_model, &referenced_fields, &options);
 	
 	if (!options) {
-		PHALCON_INIT_VAR(options);
+		options = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_INIT_VAR(entity_name);
@@ -1876,7 +1868,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getRelationByAlias){
 		if (phalcon_array_isset(aliases, key_lower)) {
 			PHALCON_OBS_VAR(relation);
 			phalcon_array_fetch(&relation, aliases, key_lower, PH_NOISY);
-			RETURN_CCTOR(relation);
+			RETURN_CTOR(relation);
 		}
 	}
 	
@@ -2185,7 +2177,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getRelationRecords){
 		PHALCON_INIT_VAR(records);
 		phalcon_call_method_p2(records, this_ptr, "getreusablerecords", referenced_model, unique_key);
 		if (Z_TYPE_P(records) == IS_ARRAY || Z_TYPE_P(records) == IS_OBJECT) {
-			RETURN_CCTOR(records);
+			RETURN_CTOR(records);
 		}
 	}
 	
@@ -2213,7 +2205,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getRelationRecords){
 		phalcon_call_method_p3_noret(this_ptr, "setreusablerecords", referenced_model, unique_key, records);
 	}
 	
-	RETURN_CCTOR(records);
+	RETURN_CTOR(records);
 }
 
 /**
@@ -2236,7 +2228,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getReusableRecords){
 	if (phalcon_array_isset(reusable, key)) {
 		PHALCON_OBS_VAR(records);
 		phalcon_array_fetch(&records, reusable, key, PH_NOISY);
-		RETURN_CCTOR(records);
+		RETURN_CTOR(records);
 	}
 	
 	RETURN_MM_NULL();
@@ -2293,7 +2285,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getBelongsToRecords){
 	phalcon_fetch_params(1, 4, 1, &method, &model_name, &model_relation, &record, &parameters);
 	
 	if (!parameters) {
-		PHALCON_INIT_VAR(parameters);
+		parameters = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_OBS_VAR(belongs_to);
@@ -2358,7 +2350,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getHasManyRecords){
 	phalcon_fetch_params(1, 4, 1, &method, &model_name, &model_relation, &record, &parameters);
 	
 	if (!parameters) {
-		PHALCON_INIT_VAR(parameters);
+		parameters = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_OBS_VAR(has_many);
@@ -2423,7 +2415,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getHasOneRecords){
 	phalcon_fetch_params(1, 4, 1, &method, &model_name, &model_relation, &record, &parameters);
 	
 	if (!parameters) {
-		PHALCON_INIT_VAR(parameters);
+		parameters = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_OBS_VAR(has_one);
@@ -2495,7 +2487,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getBelongsTo){
 		if (phalcon_array_isset(belongs_to_single, lower_name)) {
 			PHALCON_OBS_VAR(relations);
 			phalcon_array_fetch(&relations, belongs_to_single, lower_name, PH_NOISY);
-			RETURN_CCTOR(relations);
+			RETURN_CTOR(relations);
 		}
 	}
 	
@@ -2525,7 +2517,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getHasMany){
 		if (phalcon_array_isset(has_many_single, lower_name)) {
 			PHALCON_OBS_VAR(relations);
 			phalcon_array_fetch(&relations, has_many_single, lower_name, PH_NOISY);
-			RETURN_CCTOR(relations);
+			RETURN_CTOR(relations);
 		}
 	}
 	
@@ -2555,7 +2547,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getHasOne){
 		if (phalcon_array_isset(has_one_single, lower_name)) {
 			PHALCON_OBS_VAR(relations);
 			phalcon_array_fetch(&relations, has_one_single, lower_name, PH_NOISY);
-			RETURN_CCTOR(relations);
+			RETURN_CTOR(relations);
 		}
 	}
 	
@@ -2586,7 +2578,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getHasManyToMany){
 		if (phalcon_array_isset(has_many_to_many_single, lower_name)) {
 			PHALCON_OBS_VAR(relations);
 			phalcon_array_fetch(&relations, has_many_to_many_single, lower_name, PH_NOISY);
-			RETURN_CCTOR(relations);
+			RETURN_CTOR(relations);
 		}
 	}
 	
@@ -2754,7 +2746,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getRelationsBetween){
 		if (phalcon_array_isset(belongs_to, key_relation)) {
 			PHALCON_OBS_VAR(relations);
 			phalcon_array_fetch(&relations, belongs_to, key_relation, PH_NOISY);
-			RETURN_CCTOR(relations);
+			RETURN_CTOR(relations);
 		}
 	}
 	
@@ -2767,7 +2759,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getRelationsBetween){
 		if (phalcon_array_isset(has_many, key_relation)) {
 			PHALCON_OBS_NVAR(relations);
 			phalcon_array_fetch(&relations, has_many, key_relation, PH_NOISY);
-			RETURN_CCTOR(relations);
+			RETURN_CTOR(relations);
 		}
 	}
 	
@@ -2780,7 +2772,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getRelationsBetween){
 		if (phalcon_array_isset(has_one, key_relation)) {
 			PHALCON_OBS_NVAR(relations);
 			phalcon_array_fetch(&relations, has_one, key_relation, PH_NOISY);
-			RETURN_CCTOR(relations);
+			RETURN_CTOR(relations);
 		}
 	}
 	
@@ -2838,11 +2830,11 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, executeQuery){
 	phalcon_fetch_params(1, 1, 2, &phql, &placeholders, &types);
 	
 	if (!placeholders) {
-		PHALCON_INIT_VAR(placeholders);
+		placeholders = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (!types) {
-		PHALCON_INIT_VAR(types);
+		types = PHALCON_GLOBAL(z_null);
 	}
 
 	PHALCON_OBS_VAR(dependency_injector);
@@ -2884,7 +2876,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, createBuilder){
 	phalcon_fetch_params(1, 0, 1, &params);
 	
 	if (!params) {
-		PHALCON_INIT_VAR(params);
+		params = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_OBS_VAR(dependency_injector);
@@ -2959,7 +2951,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Manager, getNamespaceAlias){
 	if (phalcon_array_isset(namespace_aliases, alias)) {
 		PHALCON_OBS_VAR(namespace);
 		phalcon_array_fetch(&namespace, namespace_aliases, alias, PH_NOISY);
-		RETURN_CCTOR(namespace);
+		RETURN_CTOR(namespace);
 	}
 	
 	PHALCON_INIT_VAR(exception_message);

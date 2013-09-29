@@ -165,8 +165,7 @@ PHP_METHOD(Phalcon_Escaper, detectEncoding){
 	/**
 	 * Strict encoding detection with fallback to non-strict detection.
 	 */
-	PHALCON_INIT_VAR(strict_check);
-	ZVAL_BOOL(strict_check, 1);
+	strict_check = PHALCON_GLOBAL(z_true);
 
 	PHALCON_INIT_NVAR(charset);
 	ZVAL_STRING(charset, "UTF-32", 1);
@@ -292,7 +291,7 @@ PHP_METHOD(Phalcon_Escaper, escapeHtml){
 		return;
 	}
 
-	RETURN_CCTORW(text);
+	RETURN_ZVAL(text, 1, 0);
 }
 
 /**
@@ -319,7 +318,7 @@ PHP_METHOD(Phalcon_Escaper, escapeHtmlAttr){
 		return;
 	}
 
-	RETURN_CCTORW(attribute);
+	RETURN_ZVAL(attribute, 1, 0);
 }
 
 /**
@@ -350,7 +349,7 @@ PHP_METHOD(Phalcon_Escaper, escapeCss){
 		RETURN_MM();
 	}
 
-	RETURN_CCTORW(css);
+	RETURN_ZVAL(css, 1, 0);
 }
 
 /**
@@ -381,7 +380,7 @@ PHP_METHOD(Phalcon_Escaper, escapeJs){
 		RETURN_MM();
 	}
 
-	RETURN_CCTORW(js);
+	RETURN_ZVAL(js, 1, 0);
 }
 
 /**

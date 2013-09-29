@@ -289,27 +289,30 @@ PHP_METHOD(Phalcon_Mvc_Collection, getModelsManager){
  */
 PHP_METHOD(Phalcon_Mvc_Collection, getReservedAttributes){
 
-	zval *reserved = NULL, *dummy;
+	zval *reserved;
 
-	PHALCON_MM_GROW();
-
-	PHALCON_OBS_VAR(reserved);
-	phalcon_read_static_property(&reserved, SL("phalcon\\mvc\\collection"), SL("_reserved") TSRMLS_CC);
+	reserved = phalcon_fetch_static_property_ce(phalcon_mvc_collection_ce, SL("_reserved") TSRMLS_CC);
 	if (Z_TYPE_P(reserved) == IS_NULL) {
-		PHALCON_INIT_VAR(dummy);
-		ZVAL_BOOL(dummy, 1);
+		zval *dummy = PHALCON_GLOBAL(z_true);
 	
-		PHALCON_INIT_NVAR(reserved);
-		array_init_size(reserved, 5);
-		phalcon_array_update_string(&reserved, SL("_connection"), &dummy, PH_COPY);
-		phalcon_array_update_string(&reserved, SL("_dependencyInjector"), &dummy, PH_COPY);
-		phalcon_array_update_string(&reserved, SL("_source"), &dummy, PH_COPY);
-		phalcon_array_update_string(&reserved, SL("_operationMade"), &dummy, PH_COPY);
-		phalcon_array_update_string(&reserved, SL("_errorMessages"), &dummy, PH_COPY);
-		phalcon_update_static_property(SL("phalcon\\mvc\\collection"), SL("_reserved"), reserved TSRMLS_CC);
+		array_init_size(return_value, 5);
+		Z_ADDREF_P(dummy);
+		add_assoc_zval_ex(return_value, SS("_connection"), dummy);
+		Z_ADDREF_P(dummy);
+		add_assoc_zval_ex(return_value, SS("_dependencyInjector"), dummy);
+		Z_ADDREF_P(dummy);
+		add_assoc_zval_ex(return_value, SS("_source"), dummy);
+		Z_ADDREF_P(dummy);
+		add_assoc_zval_ex(return_value, SS("_operationMade"), dummy);
+		Z_ADDREF_P(dummy);
+		add_assoc_zval_ex(return_value, SS("_errorMessages"), dummy);
+		/* reserved is a reference, no need to update the property
+		phalcon_update_static_property_ce(phalcon_mvc_collection_ce, SL("_reserved"), reserved TSRMLS_CC);
+		*/
+		return;
 	}
-	
-	RETURN_CCTOR(reserved);
+
+	RETURN_ZVAL(reserved, 1, 0);
 }
 
 /**
@@ -369,7 +372,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, getSource){
 		phalcon_update_property_this(this_ptr, SL("_source"), source TSRMLS_CC);
 	}
 	
-	RETURN_CCTOR(source);
+	RETURN_CTOR(source);
 }
 
 /**
@@ -403,7 +406,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, getConnectionService){
 	PHALCON_MM_GROW();
 
 	models_manager = phalcon_fetch_nproperty_this(this_ptr, SL("_modelsManager"), PH_NOISY_CC);
-	phalcon_call_method_p1_ex(return_value, return_value_ptr, models_manager, "getconnectionservice", this_ptr);
+	phalcon_return_call_method_p1(models_manager, "getconnectionservice", this_ptr);
 	RETURN_MM();
 }
 
@@ -428,7 +431,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, getConnection){
 		phalcon_update_property_this(this_ptr, SL("_connection"), connection TSRMLS_CC);
 	}
 	
-	RETURN_CCTOR(connection);
+	RETURN_CTOR(connection);
 }
 
 /**
@@ -452,7 +455,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, readAttribute){
 	if (phalcon_isset_property_zval(this_ptr, attribute TSRMLS_CC)) {
 		PHALCON_OBS_VAR(attribute_value);
 		phalcon_read_property_zval(&attribute_value, this_ptr, attribute, PH_NOISY_CC);
-		RETURN_CCTOR(attribute_value);
+		RETURN_CTOR(attribute_value);
 	}
 	RETURN_MM_NULL();
 }
@@ -522,7 +525,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, cloneResult){
 		zend_hash_move_forward_ex(ah0, &hp0);
 	}
 	
-	RETURN_CCTOR(cloned_collection);
+	RETURN_CTOR(cloned_collection);
 }
 
 /**
@@ -933,7 +936,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, _postSave){
 			phalcon_call_method_p1_noret(this_ptr, "fireevent", event_name);
 		}
 	
-		RETURN_CCTOR(success);
+		RETURN_CTOR(success);
 	}
 	if (!zend_is_true(disable_events)) {
 		PHALCON_INIT_NVAR(event_name);
@@ -1340,8 +1343,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, save){
 	 */
 	phalcon_update_property_this(this_ptr, SL("_errorMessages"), empty_array TSRMLS_CC);
 	
-	PHALCON_OBS_VAR(disable_events);
-	phalcon_read_static_property(&disable_events, SL("phalcon\\mvc\\collection"), SL("_disableEvents") TSRMLS_CC);
+	disable_events = phalcon_fetch_static_property_ce(phalcon_mvc_collection_ce, SL("_disableEvents") TSRMLS_CC);
 	
 	/** 
 	 * Execute the preSave hook
@@ -1531,7 +1533,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, findFirst){
 	phalcon_fetch_params(1, 0, 1, &parameters);
 	
 	if (!parameters) {
-		PHALCON_INIT_VAR(parameters);
+		parameters = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(parameters) != IS_NULL) {
@@ -1553,9 +1555,8 @@ PHP_METHOD(Phalcon_Mvc_Collection, findFirst){
 	
 	PHALCON_INIT_VAR(connection);
 	phalcon_call_method(connection, collection, "getconnection");
-	
-	PHALCON_INIT_VAR(unique);
-	ZVAL_BOOL(unique, 1);
+
+	unique = PHALCON_GLOBAL(z_true);
 	phalcon_call_self_p4(return_value, this_ptr, "_getresultset", parameters, collection, connection, unique);
 	RETURN_MM();
 }
@@ -1609,7 +1610,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, find){
 	phalcon_fetch_params(1, 0, 1, &parameters);
 	
 	if (!parameters) {
-		PHALCON_INIT_VAR(parameters);
+		parameters = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(parameters) != IS_NULL) {
@@ -1632,8 +1633,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, find){
 	PHALCON_INIT_VAR(connection);
 	phalcon_call_method(connection, collection, "getconnection");
 	
-	PHALCON_INIT_VAR(unique);
-	ZVAL_BOOL(unique, 0);
+	unique = PHALCON_GLOBAL(z_false);
 	phalcon_call_self_p4(return_value, this_ptr, "_getresultset", parameters, collection, connection, unique);
 	RETURN_MM();
 }
@@ -1658,7 +1658,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, count){
 	phalcon_fetch_params(1, 0, 1, &parameters);
 	
 	if (!parameters) {
-		PHALCON_INIT_VAR(parameters);
+		parameters = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(parameters) != IS_NULL) {
@@ -1754,11 +1754,11 @@ PHP_METHOD(Phalcon_Mvc_Collection, summatory){
 	phalcon_fetch_params(1, 1, 2, &field, &conditions, &finalize);
 	
 	if (!conditions) {
-		PHALCON_INIT_VAR(conditions);
+		conditions = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (!finalize) {
-		PHALCON_INIT_VAR(finalize);
+		finalize = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(field) != IS_STRING) {
@@ -1821,13 +1821,13 @@ PHP_METHOD(Phalcon_Mvc_Collection, summatory){
 			if (phalcon_array_isset_string(first_retval, SS("summatory"))) {
 				PHALCON_OBS_VAR(summatory);
 				phalcon_array_fetch_string(&summatory, first_retval, SL("summatory"), PH_NOISY);
-				RETURN_CCTOR(summatory);
+				RETURN_CTOR(summatory);
 			}
 	
-			RETURN_CCTOR(first_retval);
+			RETURN_CTOR(first_retval);
 		}
 	
-		RETURN_CCTOR(retval);
+		RETURN_CTOR(retval);
 	}
 	
 	PHALCON_MM_RESTORE();
@@ -1863,8 +1863,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, delete){
 		return;
 	}
 	
-	PHALCON_OBS_VAR(disable_events);
-	phalcon_read_static_property(&disable_events, SL("phalcon\\mvc\\collection"), SL("_disableEvents") TSRMLS_CC);
+	disable_events = phalcon_fetch_static_property_ce(phalcon_mvc_collection_ce, SL("_disableEvents") TSRMLS_CC);
 	if (!zend_is_true(disable_events)) {
 	
 		PHALCON_INIT_VAR(event_name);
@@ -1920,7 +1919,7 @@ PHP_METHOD(Phalcon_Mvc_Collection, delete){
 	
 	PHALCON_INIT_VAR(id_condition);
 	array_init_size(id_condition, 1);
-	phalcon_array_update_string(&id_condition, SL("_id"), &mongo_id, PH_COPY | PH_SEPARATE);
+	phalcon_array_update_string(&id_condition, SL("_id"), &mongo_id, PH_COPY);
 	
 	PHALCON_INIT_VAR(success);
 	ZVAL_BOOL(success, 0);

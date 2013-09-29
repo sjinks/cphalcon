@@ -274,7 +274,7 @@ PHP_METHOD(Phalcon_Session_Bag, get){
 	phalcon_fetch_params(1, 1, 1, &property, &default_value);
 	
 	if (!default_value) {
-		PHALCON_INIT_VAR(default_value);
+		default_value = PHALCON_GLOBAL(z_null);
 	}
 	
 	/** 
@@ -296,11 +296,11 @@ PHP_METHOD(Phalcon_Session_Bag, get){
 		PHALCON_OBS_VAR(value);
 		phalcon_array_fetch(&value, data, property, PH_NOISY);
 		if (PHALCON_IS_NOT_EMPTY(value)) {
-			RETURN_CCTOR(value);
+			RETURN_CTOR(value);
 		}
 	}
 	
-	RETURN_CCTOR(default_value);
+	RETURN_CTOR(default_value);
 }
 
 /**

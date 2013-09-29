@@ -117,7 +117,7 @@ PHP_METHOD(Phalcon_Translate_Adapter_NativeArray, query){
 	phalcon_fetch_params(1, 1, 1, &index, &placeholders);
 	
 	if (!placeholders) {
-		PHALCON_INIT_VAR(placeholders);
+		placeholders = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_OBS_VAR(translate);
@@ -149,10 +149,10 @@ PHP_METHOD(Phalcon_Translate_Adapter_NativeArray, query){
 			}
 		}
 	
-		RETURN_CCTOR(translation);
+		RETURN_CTOR(translation);
 	}
 	
-	RETURN_CCTOR(index);
+	RETURN_CTOR(index);
 }
 
 /**

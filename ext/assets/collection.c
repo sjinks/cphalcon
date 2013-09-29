@@ -109,29 +109,27 @@ PHP_METHOD(Phalcon_Assets_Collection, addCss){
 	phalcon_fetch_params(1, 1, 3, &path, &local, &filter, &attributes);
 	
 	if (!local) {
-		PHALCON_INIT_VAR(local);
+		local = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (!filter) {
-		PHALCON_INIT_VAR(filter);
-		ZVAL_BOOL(filter, 1);
+		filter = PHALCON_GLOBAL(z_true);
 	}
 	
 	if (!attributes) {
-		PHALCON_INIT_VAR(attributes);
+		attributes = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(local) == IS_BOOL) {
-		PHALCON_CPY_WRT(collection_local, local);
+		collection_local = local;
 	} else {
-		PHALCON_OBS_NVAR(collection_local);
-		phalcon_read_property_this(&collection_local, this_ptr, SL("_local"), PH_NOISY_CC);
+		collection_local = phalcon_fetch_nproperty_this(this_ptr, SL("_local"), PH_NOISY_CC);
 	}
+
 	if (Z_TYPE_P(attributes) == IS_ARRAY) { 
-		PHALCON_CPY_WRT(collection_attributes, attributes);
+		collection_attributes = attributes;
 	} else {
-		PHALCON_OBS_NVAR(collection_attributes);
-		phalcon_read_property_this(&collection_attributes, this_ptr, SL("_attributes"), PH_NOISY_CC);
+		collection_attributes = phalcon_fetch_nproperty_this(this_ptr, SL("_attributes"), PH_NOISY_CC);
 	}
 	
 	PHALCON_INIT_VAR(resource);
@@ -162,29 +160,27 @@ PHP_METHOD(Phalcon_Assets_Collection, addJs){
 	phalcon_fetch_params(1, 1, 3, &path, &local, &filter, &attributes);
 	
 	if (!local) {
-		PHALCON_INIT_VAR(local);
+		local = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (!filter) {
-		PHALCON_INIT_VAR(filter);
-		ZVAL_BOOL(filter, 1);
+		filter = PHALCON_GLOBAL(z_true);
 	}
 	
 	if (!attributes) {
-		PHALCON_INIT_VAR(attributes);
+		attributes = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(local) == IS_BOOL) {
-		PHALCON_CPY_WRT(collection_local, local);
+		collection_local = local;
 	} else {
-		PHALCON_OBS_NVAR(collection_local);
-		phalcon_read_property_this(&collection_local, this_ptr, SL("_local"), PH_NOISY_CC);
+		collection_local = phalcon_fetch_nproperty_this(this_ptr, SL("_local"), PH_NOISY_CC);
 	}
+
 	if (Z_TYPE_P(attributes) == IS_ARRAY) { 
-		PHALCON_CPY_WRT(collection_attributes, attributes);
+		collection_attributes = attributes;
 	} else {
-		PHALCON_OBS_NVAR(collection_attributes);
-		phalcon_read_property_this(&collection_attributes, this_ptr, SL("_attributes"), PH_NOISY_CC);
+		collection_attributes = phalcon_fetch_nproperty_this(this_ptr, SL("_attributes"), PH_NOISY_CC);
 	}
 	
 	PHALCON_INIT_VAR(resource);
@@ -205,15 +201,13 @@ PHP_METHOD(Phalcon_Assets_Collection, getResources){
 
 	zval *resources;
 
-	PHALCON_MM_GROW();
-
-	PHALCON_OBS_VAR(resources);
-	phalcon_read_property_this(&resources, this_ptr, SL("_resources"), PH_NOISY_CC);
+	resources = phalcon_fetch_nproperty_this(this_ptr, SL("_resources"), PH_NOISY_CC);
 	if (Z_TYPE_P(resources) != IS_ARRAY) { 
-		RETURN_MM_EMPTY_ARRAY();
+		array_init(return_value);
+		return;
 	}
 	
-	RETURN_CCTOR(resources);
+	RETURN_ZVAL(resources, 1, 0);
 }
 
 /**
@@ -252,20 +246,13 @@ PHP_METHOD(Phalcon_Assets_Collection, current){
 
 	zval *position, *resources, *resource;
 
-	PHALCON_MM_GROW();
-
-	PHALCON_OBS_VAR(position);
-	phalcon_read_property_this(&position, this_ptr, SL("_position"), PH_NOISY_CC);
-	
-	PHALCON_OBS_VAR(resources);
-	phalcon_read_property_this(&resources, this_ptr, SL("_resources"), PH_NOISY_CC);
-	if (phalcon_array_isset(resources, position)) {
-		PHALCON_OBS_VAR(resource);
-		phalcon_array_fetch(&resource, resources, position, PH_NOISY);
-		RETURN_CCTOR(resource);
+	position  = phalcon_fetch_nproperty_this(this_ptr, SL("_position"), PH_NOISY_CC);
+	resources = phalcon_fetch_nproperty_this(this_ptr, SL("_resources"), PH_NOISY_CC);
+	if (phalcon_array_isset_fetch(&resource, resources, position)) {
+		RETURN_ZVAL(resource, 1, 0);
 	}
 	
-	RETURN_MM_NULL();
+	RETURN_NULL();
 }
 
 /**
@@ -570,7 +557,7 @@ PHP_METHOD(Phalcon_Assets_Collection, getRealTargetPath){
 	phalcon_fetch_params(1, 0, 1, &base_path);
 	
 	if (!base_path) {
-		PHALCON_INIT_VAR(base_path);
+		base_path = PHALCON_GLOBAL(z_null);
 	}
 	
 	PHALCON_OBS_VAR(target_path);

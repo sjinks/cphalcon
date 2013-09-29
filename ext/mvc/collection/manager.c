@@ -179,10 +179,8 @@ PHP_METHOD(Phalcon_Mvc_Collection_Manager, getCustomEventsManager){
 	
 		PHALCON_INIT_VAR(class_name);
 		phalcon_get_class(class_name, model, 1 TSRMLS_CC);
-		if (phalcon_array_isset(custom_events_manager, class_name)) {
-			PHALCON_OBS_VAR(events_manager);
-			phalcon_array_fetch(&events_manager, custom_events_manager, class_name, PH_NOISY);
-			RETURN_CCTOR(events_manager);
+		if (phalcon_array_isset_fetch(&events_manager, custom_events_manager, class_name)) {
+			RETURN_CTOR(events_manager);
 		}
 	}
 	
@@ -248,23 +246,16 @@ PHP_METHOD(Phalcon_Mvc_Collection_Manager, initialize){
 PHP_METHOD(Phalcon_Mvc_Collection_Manager, isInitialized){
 
 	zval *model_name, *initialized, *lowercased;
-	zval *is_intitialized = NULL;
-	zval *r0 = NULL;
 
-	PHALCON_MM_GROW();
-
-	phalcon_fetch_params(1, 1, 0, &model_name);
+	phalcon_fetch_params(0, 1, 0, &model_name);
 	
-	PHALCON_OBS_VAR(initialized);
-	phalcon_read_property_this(&initialized, this_ptr, SL("_initialized"), PH_NOISY_CC);
+	initialized = phalcon_fetch_nproperty_this(this_ptr, SL("_initialized"), PH_NOISY_CC);
 	
-	PHALCON_INIT_VAR(lowercased);
+	ALLOC_INIT_ZVAL(lowercased);
 	phalcon_fast_strtolower(lowercased, model_name);
 	
-	PHALCON_INIT_VAR(r0);
-	ZVAL_BOOL(r0, phalcon_array_isset(initialized, lowercased));
-	PHALCON_CPY_WRT(is_intitialized, r0);
-	RETURN_NCTOR(is_intitialized);
+	RETVAL_BOOL(phalcon_array_isset(initialized, lowercased));
+	zval_ptr_dtor(&lowercased);
 }
 
 /**
@@ -358,10 +349,8 @@ PHP_METHOD(Phalcon_Mvc_Collection_Manager, isUsingImplicitObjectIds){
 	 */
 	PHALCON_OBS_VAR(implicit_objects_ids);
 	phalcon_read_property_this(&implicit_objects_ids, this_ptr, SL("_implicitObjectsIds"), PH_NOISY_CC);
-	if (phalcon_array_isset(implicit_objects_ids, entity_name)) {
-		PHALCON_OBS_VAR(implicit);
-		phalcon_array_fetch(&implicit, implicit_objects_ids, entity_name, PH_NOISY);
-		RETURN_CCTOR(implicit);
+	if (phalcon_array_isset_fetch(&implicit, implicit_objects_ids, entity_name)) {
+		RETURN_CTOR(implicit);
 	}
 	
 	RETURN_MM_TRUE;

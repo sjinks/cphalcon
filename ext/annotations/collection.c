@@ -92,7 +92,7 @@ PHP_METHOD(Phalcon_Annotations_Collection, __construct){
 	phalcon_fetch_params(1, 0, 1, &reflection_data);
 	
 	if (!reflection_data) {
-		PHALCON_INIT_VAR(reflection_data);
+		reflection_data = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (Z_TYPE_P(reflection_data) != IS_NULL) {
@@ -163,20 +163,13 @@ PHP_METHOD(Phalcon_Annotations_Collection, current){
 
 	zval *position, *annotations, *annotation;
 
-	PHALCON_MM_GROW();
-
-	PHALCON_OBS_VAR(position);
-	phalcon_read_property_this(&position, this_ptr, SL("_position"), PH_NOISY_CC);
-	
-	PHALCON_OBS_VAR(annotations);
-	phalcon_read_property_this(&annotations, this_ptr, SL("_annotations"), PH_NOISY_CC);
-	if (phalcon_array_isset(annotations, position)) {
-		PHALCON_OBS_VAR(annotation);
-		phalcon_array_fetch(&annotation, annotations, position, PH_NOISY);
-		RETURN_CCTOR(annotation);
+	position    = phalcon_fetch_nproperty_this(this_ptr, SL("_position"), PH_NOISY_CC);
+	annotations = phalcon_fetch_nproperty_this(this_ptr, SL("_annotations"), PH_NOISY_CC);
+	if (phalcon_array_isset_fetch(&annotation, annotations, position)) {
+		RETURN_ZVAL(annotation, 1, 0);
 	}
 	
-	RETURN_MM_NULL();
+	RETURN_NULL();
 }
 
 /**

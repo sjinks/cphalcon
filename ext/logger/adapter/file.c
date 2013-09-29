@@ -85,7 +85,7 @@ PHP_METHOD(Phalcon_Logger_Adapter_File, __construct){
 	phalcon_fetch_params(1, 1, 1, &name, &options);
 	
 	if (!options) {
-		PHALCON_INIT_VAR(options);
+		options = PHALCON_GLOBAL(z_null);
 	}
 	
 	if (phalcon_array_isset_string(options, SS("mode"))) {
@@ -141,7 +141,7 @@ PHP_METHOD(Phalcon_Logger_Adapter_File, getFormatter){
 		phalcon_update_property_this(this_ptr, SL("_formatter"), formatter TSRMLS_CC);
 	}
 	
-	RETURN_CCTOR(formatter);
+	RETURN_CTOR(formatter);
 }
 
 /**
