@@ -190,7 +190,7 @@ PHP_METHOD(Phalcon_Http_Request, get){
 	
 				phalcon_call_method_p3(return_value, filter, "sanitize", value, filters, norecursive);
 
-				if (PHALCON_IS_EMPTY(return_value) && zend_is_true(not_allow_empty)) {
+				if ((PHALCON_IS_EMPTY(return_value) && zend_is_true(not_allow_empty)) || PHALCON_IS_FALSE(return_value)) {
 					zval_dtor(return_value);
 					RETURN_CTOR(default_value);
 				}
@@ -290,7 +290,7 @@ PHP_METHOD(Phalcon_Http_Request, getPost){
 	
 				phalcon_call_method_p3(return_value, filter, "sanitize", value, filters, norecursive);
 
-				if (PHALCON_IS_EMPTY(return_value) && zend_is_true(not_allow_empty)) {
+				if ((PHALCON_IS_EMPTY(return_value) && zend_is_true(not_allow_empty)) || PHALCON_IS_FALSE(return_value)) {
 					zval_dtor(return_value);
 					RETURN_CTOR(default_value);
 				} else {
@@ -393,7 +393,7 @@ PHP_METHOD(Phalcon_Http_Request, getQuery){
 	
 				phalcon_call_method_p3(return_value, filter, "sanitize", value, filters, norecursive);
 
-				if (PHALCON_IS_EMPTY(return_value) && zend_is_true(not_allow_empty)) {
+				if ((PHALCON_IS_EMPTY(return_value) && zend_is_true(not_allow_empty)) || PHALCON_IS_FALSE(return_value)) {
 					zval_dtor(return_value);
 					RETURN_CTOR(default_value);
 				} else {
