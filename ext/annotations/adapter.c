@@ -89,15 +89,14 @@ PHP_METHOD(Phalcon_Annotations_Adapter, getReader){
 
 	PHALCON_MM_GROW();
 
-	PHALCON_OBS_VAR(reader);
-	phalcon_read_property_this(&reader, this_ptr, SL("_reader"), PH_NOISY_CC);
+	reader = phalcon_fetch_nproperty_this(this_ptr, SL("_reader"), PH_NOISY_CC);
 	if (Z_TYPE_P(reader) != IS_OBJECT) {
 		PHALCON_INIT_NVAR(reader);
 		object_init_ex(reader, phalcon_annotations_reader_ce);
 		phalcon_update_property_this(this_ptr, SL("_reader"), reader TSRMLS_CC);
 	}
 	
-	RETURN_CCTOR(reader);
+	RETURN_CTOR(reader);
 }
 
 /**
