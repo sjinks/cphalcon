@@ -85,18 +85,16 @@ PHP_METHOD(Phalcon_Annotations_Adapter, setReader){
  */
 PHP_METHOD(Phalcon_Annotations_Adapter, getReader){
 
-	zval *reader = NULL;
-
-	PHALCON_MM_GROW();
+	zval *reader;
 
 	reader = phalcon_fetch_nproperty_this(this_ptr, SL("_reader"), PH_NOISY_CC);
 	if (Z_TYPE_P(reader) != IS_OBJECT) {
-		PHALCON_INIT_NVAR(reader);
-		object_init_ex(reader, phalcon_annotations_reader_ce);
-		phalcon_update_property_this(this_ptr, SL("_reader"), reader TSRMLS_CC);
+		object_init_ex(return_value, phalcon_annotations_reader_ce);
+		phalcon_update_property_this(this_ptr, SL("_reader"), return_value TSRMLS_CC);
+		return;
 	}
 	
-	RETURN_CTOR(reader);
+	RETURN_ZVAL(reader, 1, 0);
 }
 
 /**

@@ -281,7 +281,7 @@ PHP_METHOD(Phalcon_DI_Service, resolve){
 		phalcon_update_property_this(this_ptr, SL("_sharedInstance"), instance TSRMLS_CC);
 	}
 	
-	RETURN_CCTOR(instance);
+	RETURN_CTOR(instance);
 }
 
 /**
