@@ -4,7 +4,8 @@ Segmentation fault in \Phalcon\Tag::tagHtml - https://github.com/phalcon/cphalco
 <?php include('skipif.inc'); ?>
 --FILE--
 <?php
+new \Phalcon\DI\FactoryDefault();
 echo \Phalcon\Tag::tagHtml('aside');
 ?>
 --EXPECT--
-<aside></aside>
+<aside>
