@@ -30,7 +30,6 @@ before_script:
  - ulimit -c unlimited || true
 
 script:
- - ./unit-tests/ci/run_php_tests.sh
  - USE_ZEND_ALLOC=0 ZEND_DONT_UNLOAD_MODULES=1 valgrind --leak-check=full --read-var-info=yes --track-origins=yes --fullpath-after= $(phpenv which php) ./unit-tests/ci/phpunit.php -c unit-tests/phpunit.xml
  - PHALCON_NO_RVO=1 USE_ZEND_ALLOC=0 ZEND_DONT_UNLOAD_MODULES=1 valgrind --leak-check=full --fullpath-after= $(phpenv which php) ./unit-tests/ci/phpunit.php -c unit-tests/phpunit.xml
 
