@@ -137,11 +137,10 @@ PHP_METHOD(Phalcon_Text, increment){
 	if (phalcon_array_isset_long(parts, 1)) {
 		PHALCON_OBS_VAR(number);
 		phalcon_array_fetch_long(&number, parts, 1, PH_NOISY);
-		PHALCON_SEPARATE(number);
+		SEPARATE_ZVAL(&number);
 		phalcon_increment(number);
 	} else {
-		PHALCON_INIT_NVAR(number);
-		ZVAL_LONG(number, 1);
+		number = PHALCON_GLOBAL(z_one);
 	}
 	
 	PHALCON_OBS_VAR(first_part);
@@ -196,14 +195,18 @@ PHP_METHOD(Phalcon_Text, random){
 PHP_METHOD(Phalcon_Text, startsWith){
 
 	zval *str, *start, *ignore_case = NULL;
+	zval *case_sensitive;
 
 	phalcon_fetch_params(0, 2, 1, &str, &start, &ignore_case);
 	
-	if (phalcon_start_with(str, start, ignore_case ? ignore_case : PHALCON_GLOBAL(z_true))) {
-		RETURN_TRUE;
+	if (!ignore_case) {
+		case_sensitive = PHALCON_GLOBAL(z_false);
 	}
-	
-	RETURN_FALSE;
+	else {
+		case_sensitive = zend_is_true(ignore_case) ? PHALCON_GLOBAL(z_false) : PHALCON_GLOBAL(z_true);
+	}
+
+	RETURN_BOOL(phalcon_start_with(str, start, case_sensitive));
 }
 
 /**
@@ -223,14 +226,18 @@ PHP_METHOD(Phalcon_Text, startsWith){
 PHP_METHOD(Phalcon_Text, endsWith){
 
 	zval *str, *end, *ignore_case = NULL;
+	zval *case_sensitive;
 
 	phalcon_fetch_params(0, 2, 1, &str, &end, &ignore_case);
 	
-	if (phalcon_end_with(str, end, ignore_case ? ignore_case : PHALCON_GLOBAL(z_true))) {
-		RETURN_TRUE;
+	if (!ignore_case) {
+		case_sensitive = PHALCON_GLOBAL(z_false);
 	}
-	
-	RETURN_FALSE;
+	else {
+		case_sensitive = zend_is_true(ignore_case) ? PHALCON_GLOBAL(z_false) : PHALCON_GLOBAL(z_true);
+	}
+
+	RETURN_BOOL(phalcon_end_with(str, end, case_sensitive));
 }
 
 /**
