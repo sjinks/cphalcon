@@ -88,7 +88,7 @@ int phalcon_array_isset_fetch(zval **fetched, const zval *arr, zval *index) {
 	return 0;
 }
 
-int phalcon_array_isset_quick_string_fetch(zval **fetched, zval *arr, char *index, uint index_length, unsigned long key) {
+int phalcon_array_isset_quick_string_fetch(zval **fetched, zval *arr, const char *index, uint index_length, unsigned long key) {
 
 	zval **zv;
 
@@ -102,7 +102,7 @@ int phalcon_array_isset_quick_string_fetch(zval **fetched, zval *arr, char *inde
 	return 0;
 }
 
-int phalcon_array_isset_string_fetch(zval **fetched, zval *arr, char *index, uint index_length) {
+int phalcon_array_isset_string_fetch(zval **fetched, zval *arr, const char *index, uint index_length) {
 
 	return phalcon_array_isset_quick_string_fetch(fetched, arr, index, index_length, zend_inline_hash_func(index, index_length));
 }
@@ -346,7 +346,7 @@ int phalcon_array_append_long(zval **arr, long value, int separate) {
 
 	zval *zvalue;
 
-	ALLOC_INIT_ZVAL(zvalue);
+	MAKE_STD_ZVAL(zvalue);
 	Z_SET_REFCOUNT_P(zvalue, 0);
 	ZVAL_LONG(zvalue, value);
 
@@ -371,7 +371,7 @@ int phalcon_array_append_string(zval **arr, char *value, uint value_length, int 
 
 	zval *zvalue;
 
-	ALLOC_INIT_ZVAL(zvalue);
+	MAKE_STD_ZVAL(zvalue);
 	Z_SET_REFCOUNT_P(zvalue, 0);
 	ZVAL_STRINGL(zvalue, value, value_length, 1);
 
@@ -500,7 +500,7 @@ int phalcon_array_update_zval_string(zval **arr, zval *index, char *value, uint 
 
 	zval *zvalue;
 
-	ALLOC_INIT_ZVAL(zvalue);
+	MAKE_STD_ZVAL(zvalue);
 	ZVAL_STRINGL(zvalue, value, value_length, 1);
 
 	return phalcon_array_update_zval(arr, index, &zvalue, flags);

@@ -99,6 +99,7 @@ static int phalcon_config_count_elements(zval *object, long int *count TSRMLS_DC
 static zval* phalcon_config_read_internal(phalcon_config_object *object, zval *key, int type TSRMLS_DC)
 {
 	zval **retval;
+
 	if (UNEXPECTED(!key)) {
 		return EG(uninitialized_zval_ptr);
 	}
@@ -115,6 +116,10 @@ static zval* phalcon_config_read_property(zval *object, zval *offset, int type Z
 	phalcon_config_object *obj = fetchPhalconConfigObject(object TSRMLS_CC);
 
 	if (obj->obj.ce->type != ZEND_INTERNAL_CLASS) {
+		if (BP_VAR_IS == type && !zend_get_std_object_handlers()->has_property(object, offset, 2 ZLK_CC TSRMLS_CC)) {
+			return EG(uninitialized_zval_ptr);
+		}
+
 		return zend_get_std_object_handlers()->read_property(object, offset, type ZLK_CC TSRMLS_CC);
 	}
 
@@ -129,6 +134,10 @@ static zval* phalcon_config_read_dimension(zval *object, zval *offset, int type 
 	phalcon_config_object *obj = fetchPhalconConfigObject(object TSRMLS_CC);
 
 	if (obj->obj.ce->type != ZEND_INTERNAL_CLASS) {
+		if (BP_VAR_IS == type && !zend_get_std_object_handlers()->has_dimension(object, offset, 0 TSRMLS_CC)) {
+			return EG(uninitialized_zval_ptr);
+		}
+
 		return zend_get_std_object_handlers()->read_dimension(object, offset, type TSRMLS_CC);
 	}
 
@@ -142,7 +151,7 @@ static void phalcon_config_write_internal(phalcon_config_object *object, zval *o
 {
 	if (Z_TYPE_P(value) == IS_ARRAY) {
 		zval *instance;
-		ALLOC_INIT_ZVAL(instance);
+		MAKE_STD_ZVAL(instance);
 		object_init_ex(instance, phalcon_config_ce);
 		phalcon_config_construct_internal(instance, value TSRMLS_CC);
 		phalcon_hash_update_or_insert(object->props, offset, instance);
@@ -646,7 +655,7 @@ PHP_METHOD(Phalcon_Config, merge){
  */
 PHP_METHOD(Phalcon_Config, toArray){
 
-	zval key, *array_value = NULL, *recursive = NULL, *tmp;
+	zval key, *array_value, *recursive = NULL, *tmp;
 	HashPosition hp;
 	zval **value;
 	phalcon_config_object *obj;
@@ -666,9 +675,10 @@ PHP_METHOD(Phalcon_Config, toArray){
 			key = phalcon_get_current_key_w(Z_ARRVAL_P(return_value), &hp);
 
 			if (Z_TYPE_PP(value) == IS_OBJECT && phalcon_method_exists_ex(*value, SS("toarray") TSRMLS_CC) == SUCCESS) {
-				ALLOC_INIT_ZVAL(array_value);
-				phalcon_call_method_params(array_value, &array_value, *value, SL("toarray"), zend_inline_hash_func(SS("toarray")) TSRMLS_CC, 0);
-				phalcon_array_update_zval(&return_value, &key, &array_value, 0);
+				array_value = NULL;
+				if (SUCCESS == phalcon_call_method_params(array_value, &array_value, *value, SL("toarray"), zend_inline_hash_func(SS("toarray")) TSRMLS_CC, 0)) {
+					phalcon_array_update_zval(&return_value, &key, &array_value, 0);
+				}
 			}
 		}
 	}

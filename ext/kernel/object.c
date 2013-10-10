@@ -429,7 +429,6 @@ int phalcon_read_property(zval **result, zval *object, char *property_name, unsi
 		}
 
 		ALLOC_INIT_ZVAL(*result);
-		ZVAL_NULL(*result);
 		return FAILURE;
 	}
 
@@ -1125,7 +1124,7 @@ int phalcon_update_property_empty_array(zend_class_entry *ce, zval *object, char
 	zval *empty_array;
 	int res;
 
-	ALLOC_INIT_ZVAL(empty_array);
+	MAKE_STD_ZVAL(empty_array);
 	array_init(empty_array);
 
 	res = phalcon_update_property_zval(object, property_name, property_length, empty_array TSRMLS_CC);
@@ -1285,7 +1284,7 @@ int phalcon_create_instance(zval *return_value, const zval *class_name TSRMLS_DC
 	zend_class_entry *ce;
 
 	if (Z_TYPE_P(class_name) != IS_STRING) {
-		phalcon_throw_exception_string(phalcon_exception_ce, SL("Invalid class name") TSRMLS_CC);
+		phalcon_throw_exception_string(phalcon_exception_ce, "Invalid class name" TSRMLS_CC);
 		return FAILURE;
 	}
 
@@ -1311,12 +1310,12 @@ int phalcon_create_instance_params(zval *return_value, const zval *class_name, z
 	zend_class_entry *ce;
 
 	if (Z_TYPE_P(class_name) != IS_STRING) {
-		phalcon_throw_exception_string(phalcon_exception_ce, SL("Invalid class name") TSRMLS_CC);
+		phalcon_throw_exception_string(phalcon_exception_ce, "Invalid class name" TSRMLS_CC);
 		return FAILURE;
 	}
 
 	if (Z_TYPE_P(params) != IS_ARRAY) {
-		phalcon_throw_exception_string(phalcon_exception_ce, SL("Instantiation parameters must be an array") TSRMLS_CC);
+		phalcon_throw_exception_string(phalcon_exception_ce, "Instantiation parameters must be an array" TSRMLS_CC);
 		return FAILURE;
 	}
 
