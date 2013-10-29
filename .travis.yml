@@ -19,6 +19,7 @@ services:
 before_install:
  - ./unit-tests/ci/install_prereqs.sh
  - ./unit-tests/ci/setup_dbs.sh
+ - sudo apt-get -qq update
  - sudo apt-get -qq install valgrind
 
 before_script:
