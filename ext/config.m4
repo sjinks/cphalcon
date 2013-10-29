@@ -199,6 +199,7 @@ mvc/model/messageinterface.c \
 mvc/model/transactioninterface.c \
 config/adapter/ini.c \
 config/adapter/json.c \
+config/adapter/php.c \
 config/exception.c \
 filterinterface.c \
 logger/multiple.c \
@@ -299,7 +300,6 @@ di/exception.c \
 di/injectionawareinterface.c \
 di/service.c \
 security.c \
-translate.c \
 annotations/reflection.c \
 annotations/annotation.c \
 annotations/readerinterface.c \
