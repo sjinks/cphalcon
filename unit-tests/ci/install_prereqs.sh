@@ -14,9 +14,9 @@ CFLAGS="-O1 -g3 -fno-strict-aliasing" pecl install igbinary < /dev/null &
 CFLAGS="-O1 -g3 -fno-strict-aliasing" pecl install imagick < /dev/null &
 # CFLAGS="-O2 -g3 -fno-strict-aliasing" pecl upgrade mongo < /dev/null &
 
-sudo apt-get -qq install lcov
 phpenv config-add "$DIR/memcache.ini"
 phpenv config-add "$DIR/memcached.ini"
 phpenv config-rm xdebug.ini
 
 wait
+sudo apt-get -qq install lcov
