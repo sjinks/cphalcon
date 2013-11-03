@@ -2,6 +2,8 @@
 
 DIR=$(readlink -enq $(dirname $0))
 
+sudo apt-get -qq update &
+
 if [ "$(php -r 'echo substr(PHP_VERSION, 0, 3);')" = "5.5" ]; then
 	( pecl install apcu < /dev/null || ( pecl config-set preferred_state beta; pecl install apcu < /dev/null ) && phpenv config-add "$DIR/apcu.ini" ) &
 else
@@ -14,6 +16,7 @@ CFLAGS="-O1 -g3 -fno-strict-aliasing" pecl install imagick < /dev/null &
 
 sudo apt-get -qq install lcov
 phpenv config-add "$DIR/memcache.ini"
+phpenv config-add "$DIR/memcached.ini"
 phpenv config-rm xdebug.ini
 
 wait
