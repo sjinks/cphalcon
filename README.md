@@ -10,7 +10,7 @@ Phalcon is written in C with platform independence in mind. As a result, Phalcon
 
 ### Windows
 
-For use phalcon on windows you only should to download a DLL library (http://phalconphp.com/download). Edit your php.ini file and then add:
+To use Phalcon on windows you should download a DLL library (http://phalconphp.com/en/download/windows). Edit your php.ini file and then add:
 
 ```bash
 extension=php_phalcon.dll
@@ -41,10 +41,16 @@ sudo apt-get install build-essential php5-dev
 sudo apt-get build-dep php5-dev
 ```
 
-Suse:
+SuSE:
 
 ```bash
 yast2 -i php5-pear php5-devel libmysqlclient gcc make autoconf2.13
+```
+
+CentOS:
+
+```bash
+yum install pcre-devel gcc make php-devel
 ```
 
 Compilation
