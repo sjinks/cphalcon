@@ -19,4 +19,8 @@ phpenv config-add "$DIR/memcached.ini"
 phpenv config-rm xdebug.ini
 
 wait
-sudo apt-get -qq install lcov
+
+sudo apt-get -qq install lcov beanstalkd
+echo 'DAEMON_OPTS="-l 127.0.0.1 -p 11300"' | sudo tee -a /etc/default/beanstalkd > /dev/null
+echo 'START=yes' | sudo tee -a /etc/default/beanstalkd > /dev/null
+sudo service beanstalkd restart
