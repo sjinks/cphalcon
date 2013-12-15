@@ -29,10 +29,10 @@
 #include "Zend/zend_exceptions.h"
 #include "Zend/zend_interfaces.h"
 
+#include "ext/pdo/php_pdo_driver.h"
+
 #include "kernel/main.h"
 #include "kernel/memory.h"
-
-#include "ext/pdo/php_pdo_driver.h"
 #include "kernel/exception.h"
 #include "kernel/object.h"
 #include "kernel/fcall.h"
@@ -65,7 +65,7 @@ PHALCON_INIT_CLASS(Phalcon_Db_Result_Pdo){
 
 	zend_declare_property_null(phalcon_db_result_pdo_ce, SL("_connection"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_db_result_pdo_ce, SL("_result"), ZEND_ACC_PROTECTED TSRMLS_CC);
-	zend_declare_property_long(phalcon_db_result_pdo_ce, SL("_fetchMode"), 4, ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_long(phalcon_db_result_pdo_ce, SL("_fetchMode"), PDO_FETCH_OBJ, ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_db_result_pdo_ce, SL("_pdoStatement"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_db_result_pdo_ce, SL("_sqlStatement"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_db_result_pdo_ce, SL("_bindParams"), ZEND_ACC_PROTECTED TSRMLS_CC);
@@ -89,9 +89,7 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, __construct){
 	zval *connection, *result, *sql_statement = NULL, *bind_params = NULL;
 	zval *bind_types = NULL;
 
-	PHALCON_MM_GROW();
-
-	phalcon_fetch_params(1, 2, 3, &connection, &result, &sql_statement, &bind_params, &bind_types);
+	phalcon_fetch_params(0, 2, 3, &connection, &result, &sql_statement, &bind_params, &bind_types);
 	
 	if (!sql_statement) {
 		sql_statement = PHALCON_GLOBAL(z_null);
@@ -106,7 +104,7 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, __construct){
 	}
 	
 	if (Z_TYPE_P(result) != IS_OBJECT) {
-		PHALCON_THROW_EXCEPTION_STR(phalcon_db_exception_ce, "Invalid PDOStatement supplied to Phalcon\\Db\\Result\\Pdo");
+		PHALCON_THROW_EXCEPTION_STRW(phalcon_db_exception_ce, "Invalid PDOStatement supplied to Phalcon\\Db\\Result\\Pdo");
 		return;
 	}
 	phalcon_update_property_this(this_ptr, SL("_connection"), connection TSRMLS_CC);
@@ -122,8 +120,6 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, __construct){
 	if (Z_TYPE_P(bind_types) != IS_NULL) {
 		phalcon_update_property_this(this_ptr, SL("_bindTypes"), bind_types TSRMLS_CC);
 	}
-	
-	PHALCON_MM_RESTORE();
 }
 
 /**
@@ -138,10 +134,9 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, execute){
 
 	PHALCON_MM_GROW();
 
-	PHALCON_OBS_VAR(pdo_statement);
-	phalcon_read_property_this(&pdo_statement, this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
-	phalcon_call_method(return_value, pdo_statement, "execute");
-	RETURN_MM();
+	pdo_statement = phalcon_fetch_nproperty_this(this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
+	phalcon_return_call_method_p0(pdo_statement, "execute");
+	PHALCON_MM_RESTORE();
 }
 
 /**
@@ -164,9 +159,8 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, fetch){
 
 	PHALCON_MM_GROW();
 
-	PHALCON_OBS_VAR(pdo_statement);
-	phalcon_read_property_this(&pdo_statement, this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
-	phalcon_call_method(return_value, pdo_statement, "fetch");
+	pdo_statement = phalcon_fetch_nproperty_this(this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
+	phalcon_return_call_method_p0(pdo_statement, "fetch");
 	RETURN_MM();
 }
 
@@ -190,9 +184,8 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, fetchArray){
 
 	PHALCON_MM_GROW();
 
-	PHALCON_OBS_VAR(pdo_statement);
-	phalcon_read_property_this(&pdo_statement, this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
-	phalcon_call_method(return_value, pdo_statement, "fetch");
+	pdo_statement = phalcon_fetch_nproperty_this(this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
+	phalcon_return_call_method_p0(pdo_statement, "fetch");
 	RETURN_MM();
 }
 
@@ -213,9 +206,8 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, fetchAll){
 
 	PHALCON_MM_GROW();
 
-	PHALCON_OBS_VAR(pdo_statement);
-	phalcon_read_property_this(&pdo_statement, this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
-	phalcon_call_method(return_value, pdo_statement, "fetchall");
+	pdo_statement = phalcon_fetch_nproperty_this(this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
+	phalcon_return_call_method_p0(pdo_statement, "fetchall");
 	RETURN_MM();
 }
 
@@ -249,21 +241,10 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, numRows){
 		phalcon_call_method(type, connection, "gettype");
 	
 		/** 
-		 * MySQL library property returns the number of records
+		 * MySQL/PostgreSQL library property returns the number of records
 		 */
-		if (PHALCON_IS_STRING(type, "mysql")) {
+		if (PHALCON_IS_STRING(type, "mysql") || PHALCON_IS_STRING(type, "pgsql")) {
 			PHALCON_OBS_VAR(pdo_statement);
-			phalcon_read_property_this(&pdo_statement, this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
-	
-			PHALCON_INIT_NVAR(row_count);
-			phalcon_call_method(row_count, pdo_statement, "rowcount");
-		}
-	
-		/** 
-		 * PostgreSQL too
-		 */
-		if (PHALCON_IS_STRING(type, "pgsql")) {
-			PHALCON_OBS_NVAR(pdo_statement);
 			phalcon_read_property_this(&pdo_statement, this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
 	
 			PHALCON_INIT_NVAR(row_count);
@@ -450,20 +431,10 @@ PHP_METHOD(Phalcon_Db_Result_Pdo, setFetchMode){
 	}
 
 	PHALCON_INIT_VAR(fetch_type);
+	ZVAL_LONG(fetch_type, fetch_mode);
 
 	PHALCON_OBS_VAR(pdo_statement);
 	phalcon_read_property(&pdo_statement, this_ptr, SL("_pdoStatement"), PH_NOISY_CC);
-	if (fetch_mode == 1) {
-		ZVAL_LONG(fetch_type, 2);
-	} else if (fetch_mode == 2) {
-		ZVAL_LONG(fetch_type, 4);
-	} else if (fetch_mode == 3) {
-		ZVAL_LONG(fetch_type, 3);
-	} else if (fetch_mode == 4) {
-		ZVAL_LONG(fetch_type, 5);
-	} else {
-		ZVAL_LONG(fetch_type, 0);
-	}
 
 	if (Z_LVAL_P(fetch_type) != 0) {
 		phalcon_call_method_p1_noret(pdo_statement, "setfetchmode", fetch_type);
