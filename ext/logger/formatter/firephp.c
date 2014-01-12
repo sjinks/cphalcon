@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -18,18 +18,12 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "logger/formatter/firephp.h"
+#include "logger/formatter.h"
+#include "logger/formatterinterface.h"
 
-#include "php.h"
-#include "php_phalcon.h"
-#include "phalcon.h"
-
-#include "ext/standard/php_smart_str.h"
-
-#include "Zend/zend_builtin_functions.h"
-#include "Zend/zend_interfaces.h"
+#include <ext/standard/php_smart_str.h>
+#include <Zend/zend_builtin_functions.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -38,13 +32,33 @@
 #include "kernel/operators.h"
 #include "kernel/string.h"
 
-#include "logger/formatter/firephp.h"
 
 /**
  * Phalcon\Logger\Formatter\Firephp
  *
  * Formats messages so that they can be sent to FirePHP
  */
+zend_class_entry *phalcon_logger_formatter_firephp_ce;
+
+PHP_METHOD(Phalcon_Logger_Formatter_Firephp, getTypeString);
+PHP_METHOD(Phalcon_Logger_Formatter_Firephp, getShowBacktrace);
+PHP_METHOD(Phalcon_Logger_Formatter_Firephp, setShowBacktrace);
+PHP_METHOD(Phalcon_Logger_Formatter_Firephp, format);
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_logger_formatter_firephp_getshowbacktrace, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_logger_formatter_firephp_setshowbacktrace, 0, 0, 0)
+	ZEND_ARG_INFO(0, show)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry phalcon_logger_formatter_firephp_method_entry[] = {
+	PHP_ME(Phalcon_Logger_Formatter_Firephp, getTypeString, arginfo_phalcon_logger_formatter_gettypestring, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Logger_Formatter_Firephp, getShowBacktrace, arginfo_phalcon_logger_formatter_firephp_getshowbacktrace, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Logger_Formatter_Firephp, setShowBacktrace, arginfo_phalcon_logger_formatter_firephp_setshowbacktrace, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Logger_Formatter_Firephp, format, arginfo_phalcon_logger_formatterinterface_format, ZEND_ACC_PUBLIC)
+	PHP_FE_END
+};
 
 /**
  * Phalcon\Logger\Formatter\Firephp initializer
@@ -88,12 +102,13 @@ PHP_METHOD(Phalcon_Logger_Formatter_Firephp, getTypeString) {
 		"INFO",  "INFO",  "LOG",  "INFO",  "LOG"
 	};
 
-	zval *type;
+	zval **type;
 	int itype;
 
-	phalcon_fetch_params(0, 1, 0, &type);
+	phalcon_fetch_params_ex(1, 0, &type);
+	PHALCON_ENSURE_IS_LONG(type);
 
-	itype = phalcon_get_intval(type);
+	itype = Z_LVAL_PP(type);
 	if (itype > 0 && itype < 10) {
 		RETURN_STRING(lut[itype], 1);
 	}
@@ -115,14 +130,14 @@ PHP_METHOD(Phalcon_Logger_Formatter_Firephp, format) {
 	zval *payload, *body, *backtrace, *meta, *encoded;
 	zval *show_backtrace;
 	smart_str result = { NULL, 0, 0 };
-	int i;
+	uint i;
 	Bucket *p;
 
 	phalcon_fetch_params(0, 3, 0, &message, &type, &timestamp);
 
 	/**
 	 * We intentionally do not use Phalcon's MM for better performance.
-	 * All variables allocated with PHALCON_ALLOC_ZVAL() will have
+	 * All variables allocated with ALLOC_INIT_ZVAL() will have
 	 * their reference count set to 1 and therefore they can be nicely
 	 * put into the result array; when that array will be destroyed,
 	 * all inserted variables will be automatically destroyed, too
@@ -140,7 +155,7 @@ PHP_METHOD(Phalcon_Logger_Formatter_Firephp, format) {
 	 * 5.3.6+ allows us to skip the function arguments which will save some memory
 	 * For 5.4+ there is an extra argument.
 	 */
-	PHALCON_ALLOC_ZVAL(backtrace);
+	ALLOC_INIT_ZVAL(backtrace);
 	if (zend_is_true(show_backtrace)) {
 #if PHP_VERSION_ID < 50306
 		zend_fetch_debug_backtrace(backtrace, 1, 0 TSRMLS_CC);
@@ -225,7 +240,7 @@ PHP_METHOD(Phalcon_Logger_Formatter_Firephp, format) {
 	MAKE_STD_ZVAL(payload);
 	array_init_size(payload, 2);
 
-	PHALCON_ALLOC_ZVAL(meta);
+	ALLOC_INIT_ZVAL(meta);
 	array_init_size(meta, 4);
 	add_assoc_zval_ex(meta, SS("Type"), type_str);
 	Z_ADDREF_P(message);
@@ -284,7 +299,7 @@ PHP_METHOD(Phalcon_Logger_Formatter_Firephp, format) {
 	 * memory reallocations.
 	 */
 	if (Z_TYPE_P(encoded) == IS_STRING && Z_STRVAL_P(encoded) != NULL) {
-		smart_str_alloc4(&result, Z_STRLEN_P(encoded) + 2 + 5, 0, i);
+		smart_str_alloc4(&result, (uint)(Z_STRLEN_P(encoded) + 2 + 5), 0, i);
 
 		/**
 		 * The format is:

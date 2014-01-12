@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -17,21 +17,15 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "crypt.h"
+#include "cryptinterface.h"
+#include "crypt/exception.h"
 
-#include "php.h"
-#include "php_phalcon.h"
-#include "phalcon.h"
-
-#include "Zend/zend_operators.h"
-#include "Zend/zend_exceptions.h"
-#include "Zend/zend_interfaces.h"
+#include <ext/standard/php_smart_str.h>
+#include <ext/standard/php_string.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
-
 #include "kernel/object.h"
 #include "kernel/exception.h"
 #include "kernel/operators.h"
@@ -39,8 +33,6 @@
 #include "kernel/string.h"
 #include "kernel/concat.h"
 
-#include "ext/standard/php_smart_str.h"
-#include "ext/standard/php_string.h"
 
 /**
  * Phalcon\Crypt
@@ -58,6 +50,47 @@
  *	echo $crypt->decrypt($encrypted, $key);
  *</code>
  */
+zend_class_entry *phalcon_crypt_ce;
+
+PHP_METHOD(Phalcon_Crypt, setCipher);
+PHP_METHOD(Phalcon_Crypt, getCipher);
+PHP_METHOD(Phalcon_Crypt, setMode);
+PHP_METHOD(Phalcon_Crypt, getMode);
+PHP_METHOD(Phalcon_Crypt, setKey);
+PHP_METHOD(Phalcon_Crypt, getKey);
+PHP_METHOD(Phalcon_Crypt, setPadding);
+PHP_METHOD(Phalcon_Crypt, getPadding);
+PHP_METHOD(Phalcon_Crypt, encrypt);
+PHP_METHOD(Phalcon_Crypt, decrypt);
+PHP_METHOD(Phalcon_Crypt, encryptBase64);
+PHP_METHOD(Phalcon_Crypt, decryptBase64);
+PHP_METHOD(Phalcon_Crypt, getAvailableCiphers);
+PHP_METHOD(Phalcon_Crypt, getAvailableModes);
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_crypt_getpadding, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_crypt_setpadding, 0, 0, 1)
+	ZEND_ARG_INFO(0, scheme)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry phalcon_crypt_method_entry[] = {
+	PHP_ME(Phalcon_Crypt, setCipher, arginfo_phalcon_cryptinterface_setcipher, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, getCipher, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, setMode, arginfo_phalcon_cryptinterface_setmode, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, getMode, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, setKey, arginfo_phalcon_cryptinterface_setkey, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, getKey, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, setPadding, arginfo_phalcon_crypt_setpadding, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, getPadding, arginfo_phalcon_crypt_getpadding, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, encrypt, arginfo_phalcon_cryptinterface_encrypt, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, decrypt, arginfo_phalcon_cryptinterface_decrypt, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, encryptBase64, arginfo_phalcon_cryptinterface_encryptbase64, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, decryptBase64, arginfo_phalcon_cryptinterface_decryptbase64, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, getAvailableCiphers, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Crypt, getAvailableModes, NULL, ZEND_ACC_PUBLIC)
+	PHP_FE_END
+};
 
 
 /**
@@ -283,7 +316,7 @@ static void phalcon_crypt_unpad_text(zval *return_value, zval *text, zval *mode,
 	int i;
 	char *str_mode;
 	char *str_text;
-	int text_len;
+	uint text_len;
 
 	assert(Z_TYPE_P(text) == IS_STRING);
 	assert(Z_TYPE_P(mode) == IS_STRING);
@@ -291,12 +324,12 @@ static void phalcon_crypt_unpad_text(zval *return_value, zval *text, zval *mode,
 	padding_size = 0;
 	str_mode = Z_STRVAL_P(mode);
 	str_text = Z_STRVAL_P(text);
-	text_len   = Z_STRLEN_P(text);
+	text_len = Z_STRLEN_P(text);
 
 	if (text_len && (text_len % block_size == 0) && (!strcmp(str_mode, "ecb") || !strcmp(str_mode, "cbc"))) {
 		switch (padding_type) {
 			case PHALCON_CRYPT_PADDING_ANSI_X_923:
-				if (str_text[text_len-1] <= block_size) {
+				if ((unsigned char)(str_text[text_len-1]) <= block_size) {
 					padding_size = str_text[text_len-1];
 
 					memset(padding, 0, padding_size - 1);
@@ -310,7 +343,7 @@ static void phalcon_crypt_unpad_text(zval *return_value, zval *text, zval *mode,
 				break;
 
 			case PHALCON_CRYPT_PADDING_PKCS7:
-				if (str_text[text_len-1] <= block_size) {
+				if ((unsigned char)(str_text[text_len-1]) <= block_size) {
 					padding_size = str_text[text_len-1];
 
 					memset(padding, padding_size, padding_size);
@@ -646,7 +679,6 @@ PHP_METHOD(Phalcon_Crypt, decryptBase64){
  */
 PHP_METHOD(Phalcon_Crypt, getAvailableCiphers){
 
-
 	phalcon_call_func_params(return_value, return_value_ptr, SL("mcrypt_list_algorithms") TSRMLS_CC, 0);
 	if (return_value_ptr && EG(exception)) {
 		ALLOC_INIT_ZVAL(*return_value_ptr);
@@ -659,7 +691,6 @@ PHP_METHOD(Phalcon_Crypt, getAvailableCiphers){
  * @return array
  */
 PHP_METHOD(Phalcon_Crypt, getAvailableModes){
-
 
 	phalcon_call_func_params(return_value, return_value_ptr, SL("mcrypt_list_modes") TSRMLS_CC, 0);
 	if (return_value_ptr && EG(exception)) {

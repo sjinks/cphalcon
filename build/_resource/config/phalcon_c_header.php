@@ -3,10 +3,16 @@
 
 return <<<HEADER
 #include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <math.h>
+#include <ctype.h>
+#include <stdlib.h>
 
 #include <main/php.h>
 
@@ -63,5 +69,6 @@ return <<<HEADER
 #include <Zend/zend_exceptions.h>
 #include <Zend/zend_interfaces.h>
 #include <Zend/zend_execute.h>
+#include <Zend/zend_extensions.h>
 #include <Zend/zend_builtin_functions.h>
 HEADER;

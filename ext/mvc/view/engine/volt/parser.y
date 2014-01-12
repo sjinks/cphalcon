@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -41,19 +41,13 @@
 
 %include {
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "php.h"
 #include "php_phalcon.h"
-#include "phalcon.h"
+#include "mvc/view/engine/volt/parser.h"
+#include "mvc/view/engine/volt/scanner.h"
+#include "mvc/view/engine/volt/volt.h"
+#include "mvc/view/exception.h"
 
-#include "ext/standard/php_smart_str.h"
-
-#include "parser.h"
-#include "scanner.h"
-#include "volt.h"
+#include <ext/standard/php_smart_str.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -610,7 +604,7 @@ static zval *phvolt_ret_macro_call_statement(zval *expr, zval *arguments, zval *
 		char *token_name = NULL;
 		const phvolt_token_names *tokens = phvolt_tokens;
 		int token_len = 0;
-		int active_token = status->scanner_state->active_token;
+		uint active_token = status->scanner_state->active_token;
 
 		if (status->scanner_state->start_length) {
 

@@ -2,7 +2,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -20,8 +20,8 @@
 #ifndef PHALCON_MVC_VIEW_ENGINE_HELPERS_H
 #define PHALCON_MVC_VIEW_ENGINE_HELPERS_H
 
-#include <Zend/zend.h>
+#include "php_phalcon.h"
 
-zend_bool phalcon_mvc_view_engine_php_symtable_merger(HashTable *ht, void *pData, zend_hash_key *hash_key, void *pParam);
+PHALCON_STATIC zend_bool phalcon_mvc_view_engine_php_symtable_merger(HashTable *ht, void *pData, zend_hash_key *hash_key, void *pParam);
 
 #endif /* PHALCON_MBC_VIEW_ENGINE_HELPERS_H */
