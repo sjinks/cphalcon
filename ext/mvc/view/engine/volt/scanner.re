@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -17,14 +17,8 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "php.h"
 #include "php_phalcon.h"
-
-#include "scanner.h"
+#include "mvc/view/engine/volt/scanner.h"
 
 #define YYCTYPE unsigned char
 #define YYCURSOR (s->start)
@@ -34,8 +28,8 @@
 void phvolt_rtrim(phvolt_scanner_token *token) {
 
 	char *cursor, *removed_str;
-	unsigned int i;
-	unsigned char ch;
+	int i;
+	char ch;
 
 	if (token->len > 0) {
 
@@ -64,14 +58,13 @@ void phvolt_rtrim(phvolt_scanner_token *token) {
 void phvolt_ltrim(phvolt_scanner_token *token) {
 
 	char *cursor, *removed_str;
-	unsigned int i;
-	unsigned char ch;
+	int i;
 
 	if (token->len > 0) {
 
 		cursor = token->value;
 		for (i = 0; i < token->len; i++) {
-			ch = (*cursor);
+			char ch = (*cursor);
 			if (ch == '\t' || ch == '\n' || ch == '\r' || ch == ' ' || ch == '\v') {
 				cursor++;
 				continue;

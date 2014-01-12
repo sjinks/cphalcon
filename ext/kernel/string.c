@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -17,37 +17,29 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "php_phalcon.h"
 
 #include <ctype.h>
-
-#include "php.h"
-#include "php_phalcon.h"
-#include "php_main.h"
-
-#include "ext/standard/php_smart_str.h"
-#include "ext/standard/php_string.h"
-#include "ext/standard/php_rand.h"
-#include "ext/standard/php_lcg.h"
-#include "ext/standard/php_http.h"
-#include "ext/standard/base64.h"
-#include "ext/standard/md5.h"
-#include "ext/standard/url.h"
-#include "ext/standard/html.h"
-#include "ext/date/php_date.h"
+#include <ext/standard/php_smart_str.h>
+#include <ext/standard/php_string.h>
+#include <ext/standard/php_rand.h>
+#include <ext/standard/php_lcg.h>
+#include <ext/standard/php_http.h>
+#include <ext/standard/base64.h>
+#include <ext/standard/md5.h>
+#include <ext/standard/url.h>
+#include <ext/standard/html.h>
+#include <ext/date/php_date.h>
 
 #ifdef PHALCON_USE_PHP_PCRE
-#include "ext/pcre/php_pcre.h"
+#include <ext/pcre/php_pcre.h>
 #endif
 
 #ifdef PHALCON_USE_PHP_JSON
-#include "ext/json/php_json.h"
+#include <ext/json/php_json.h>
 #endif
 
 #include "kernel/main.h"
-#include "kernel/memory.h"
 #include "kernel/string.h"
 #include "kernel/operators.h"
 #include "kernel/fcall.h"
@@ -282,7 +274,7 @@ void phalcon_camelize(zval *return_value, const zval *str){
  */
 void phalcon_uncamelize(zval *return_value, const zval *str){
 
-	unsigned int i;
+	int i;
 	smart_str uncamelize_str = {0};
 	char *marker, ch;
 
@@ -377,7 +369,7 @@ int phalcon_memnstr_str(const zval *haystack, char *needle, unsigned int needle_
 		return 0;
 	}
 
-	if (Z_STRLEN_P(haystack) >= needle_length) {
+	if ((uint)(Z_STRLEN_P(haystack)) >= needle_length) {
 		return php_memnstr(Z_STRVAL_P(haystack), needle, needle_length, Z_STRVAL_P(haystack) + Z_STRLEN_P(haystack)) ? 1 : 0;
 	}
 
@@ -389,6 +381,9 @@ int phalcon_memnstr_str(const zval *haystack, char *needle, unsigned int needle_
  */
 void phalcon_fast_strpos(zval *return_value, const zval *haystack, const zval *needle) {
 
+#if PHP_VERSION_ID >= 50600
+	const
+#endif
 	char *found = NULL;
 
 	if (unlikely(Z_TYPE_P(haystack) != IS_STRING || Z_TYPE_P(needle) != IS_STRING)) {
@@ -418,6 +413,9 @@ void phalcon_fast_strpos(zval *return_value, const zval *haystack, const zval *n
  */
 void phalcon_fast_strpos_str(zval *return_value, const zval *haystack, char *needle, unsigned int needle_length) {
 
+#if PHP_VERSION_ID >= 50600
+	const
+#endif
 	char *found = NULL;
 
 	if (unlikely(Z_TYPE_P(haystack) != IS_STRING)) {
@@ -441,6 +439,9 @@ void phalcon_fast_strpos_str(zval *return_value, const zval *haystack, char *nee
  */
 void phalcon_fast_stripos_str(zval *return_value, zval *haystack, char *needle, unsigned int needle_length) {
 
+#if PHP_VERSION_ID >= 50600
+	const
+#endif
 	char *found = NULL;
 	char *needle_dup, *haystack_dup;
 
@@ -654,7 +655,7 @@ int phalcon_start_with(const zval *str, const zval *compared, zval *case_sensiti
  */
 int phalcon_start_with_str(const zval *str, char *compared, unsigned int compared_length){
 
-	if (Z_TYPE_P(str) != IS_STRING || compared_length > Z_STRLEN_P(str)) {
+	if (Z_TYPE_P(str) != IS_STRING || compared_length > (uint)(Z_STRLEN_P(str))) {
 		return 0;
 	}
 
@@ -722,7 +723,7 @@ int phalcon_end_with_str(const zval *str, char *compared, unsigned int compared_
 		return 0;
 	}
 
-	if (!compared_length || !Z_STRLEN_P(str) || compared_length > Z_STRLEN_P(str)) {
+	if (!compared_length || !Z_STRLEN_P(str) || compared_length > (uint)(Z_STRLEN_P(str))) {
 		return 0;
 	}
 
@@ -872,6 +873,7 @@ int phalcon_spprintf(char **message, int max_len, char *format, ...)
  */
 void phalcon_substr(zval *return_value, zval *str, unsigned long from, unsigned long length) {
 
+	uint str_len = (uint)(Z_STRLEN_P(str));
 	if (Z_TYPE_P(str) != IS_STRING) {
 
 		if (Z_TYPE_P(str) == IS_NULL || Z_TYPE_P(str) == IS_BOOL) {
@@ -886,19 +888,19 @@ void phalcon_substr(zval *return_value, zval *str, unsigned long from, unsigned 
 		RETURN_FALSE;
 	}
 
-	if (Z_STRLEN_P(str) < from){
+	if (str_len < from){
 		RETURN_FALSE;
 	}
 
-	if (!length || (Z_STRLEN_P(str) < (length + from))) {
-		length = Z_STRLEN_P(str) - from;
+	if (!length || (str_len < length + from)) {
+		length = str_len - from;
 	}
 
-	if (length <= 0){
+	if (!length){
 		RETURN_EMPTY_STRING();
 	}
 
-	RETURN_STRINGL(Z_STRVAL_P(str) + from, length, 1);
+	RETURN_STRINGL(Z_STRVAL_P(str) + from, (int)length, 1);
 }
 
 void phalcon_append_printable_array(smart_str *implstr, zval *value TSRMLS_DC) {

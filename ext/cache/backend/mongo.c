@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -17,23 +17,17 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "php.h"
 #include "php_phalcon.h"
-#include "phalcon.h"
 
-#include "Zend/zend_operators.h"
-#include "Zend/zend_exceptions.h"
-#include "Zend/zend_interfaces.h"
+#include <ext/standard/php_rand.h>
 
-#include "ext/standard/php_rand.h"
+#include "cache/backend/mongo.h"
+#include "cache/backend.h"
+#include "cache/backendinterface.h"
+#include "cache/exception.h"
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
-
 #include "kernel/array.h"
 #include "kernel/exception.h"
 #include "kernel/fcall.h"
@@ -68,7 +62,42 @@
  *
  *</code>
  */
+zend_class_entry *phalcon_cache_backend_mongo_ce;
 
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, __construct);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, _getCollection);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, get);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, save);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, delete);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, queryKeys);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, exists);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, gc);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, increment);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, decrement);
+PHP_METHOD(Phalcon_Cache_Backend_Mongo, flush);
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_cache_backend_mongo___construct, 0, 0, 1)
+	ZEND_ARG_INFO(0, frontend)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_cache_backend_mongo_empty, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry phalcon_cache_backend_mongo_method_entry[] = {
+	PHP_ME(Phalcon_Cache_Backend_Mongo, __construct, arginfo_phalcon_cache_backend_mongo___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, _getCollection, NULL, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, get, arginfo_phalcon_cache_backendinterface_get, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, save, arginfo_phalcon_cache_backendinterface_save, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, delete, arginfo_phalcon_cache_backendinterface_delete, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, queryKeys, arginfo_phalcon_cache_backendinterface_querykeys, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, exists, arginfo_phalcon_cache_backendinterface_exists, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, gc, arginfo_phalcon_cache_backend_mongo_empty, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, increment, arginfo_phalcon_cache_backendinterface_increment, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, decrement, arginfo_phalcon_cache_backendinterface_decrement, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Cache_Backend_Mongo, flush, arginfo_phalcon_cache_backend_mongo_empty, ZEND_ACC_PUBLIC)
+	PHP_FE_END
+};
 
 /**
  * Phalcon\Cache\Backend\Mongo initializer
@@ -269,7 +298,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, save){
 
 	zval *key_name = NULL, *content = NULL, *lifetime = NULL, *stop_buffer = NULL;
 	zval *last_key, *frontend, *cached_content = NULL;
-	zval *prepared_content, *ttl = NULL, *collection, *timestamp;
+	zval *prepared_content = NULL, *ttl = NULL, *collection, *timestamp;
 	zval *conditions, *document, *data, *is_buffering;
 
 	PHALCON_MM_GROW();
@@ -332,7 +361,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, save){
 
 	if (Z_TYPE_P(document) == IS_ARRAY) { 
 		phalcon_array_update_string(&document, SL("time"), &timestamp, PH_COPY);
-		if (!phalcon_is_numeric(cached_content)) {
+		if (prepared_content) {
 			phalcon_array_update_string(&document, SL("data"), &prepared_content, PH_COPY);
 		} else {
 			phalcon_array_update_string(&document, SL("data"), &cached_content, PH_COPY);
@@ -344,7 +373,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, save){
 		phalcon_array_update_string(&data, SL("key"), &last_key, PH_COPY);
 		phalcon_array_update_string(&data, SL("time"), &timestamp, PH_COPY);
 
-		if (!phalcon_is_numeric(cached_content)) {
+		if (prepared_content) {
 			phalcon_array_update_string(&data, SL("data"), &prepared_content, PH_COPY);
 		} else {
 			phalcon_array_update_string(&data, SL("data"), &cached_content, PH_COPY);

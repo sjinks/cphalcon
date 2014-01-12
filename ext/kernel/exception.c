@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -17,20 +17,14 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "php.h"
 #include "php_phalcon.h"
-#include "php_main.h"
-#include "ext/standard/php_string.h"
 
+#include <Zend/zend_exceptions.h>
+#include "kernel/exception.h"
 #include "kernel/main.h"
 #include "kernel/memory.h"
 #include "kernel/fcall.h"
 
-#include "Zend/zend_exceptions.h"
 
 /**
  * Throws a zval object as exception
@@ -85,11 +79,11 @@ void phalcon_throw_exception_internal(zval *exception TSRMLS_DC) {
 	}
 
 	if (zend_throw_exception_hook) {
-    	zend_throw_exception_hook(exception TSRMLS_CC);
+		zend_throw_exception_hook(exception TSRMLS_CC);
 	}
 
 	if (EG(current_execute_data)->opline == NULL ||
-    	(EG(current_execute_data)->opline + 1)->opcode == ZEND_HANDLE_EXCEPTION) {
+		(EG(current_execute_data)->opline + 1)->opcode == ZEND_HANDLE_EXCEPTION) {
 		/* no need to rethrow the exception */
 		return;
 	}

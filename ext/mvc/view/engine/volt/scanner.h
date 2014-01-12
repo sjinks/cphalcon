@@ -3,7 +3,7 @@
  +------------------------------------------------------------------------+
  | Phalcon Framework                                                      |
  +------------------------------------------------------------------------+
- | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+ | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
  +------------------------------------------------------------------------+
  | This source file is subject to the New BSD License that is bundled     |
  | with this package in the file docs/LICENSE.txt.                        |
@@ -16,6 +16,11 @@
  |          Eduar Carvajal <eduar@phalconphp.com>                         |
  +------------------------------------------------------------------------+
 */
+
+#ifndef PHALCON_MVC_VIEW_ENGINE_VOLT_SCANNER_H
+#define PHALCON_MVC_VIEW_ENGINE_VOLT_SCANNER_H
+
+#include "php_phalcon.h"
 
 #define PHVOLT_RAW_BUFFER_SIZE 256
 
@@ -176,3 +181,6 @@ typedef struct _phvolt_scanner_token {
 int phvolt_get_token(phvolt_scanner_state *s, phvolt_scanner_token *token);
 
 extern const phvolt_token_names phvolt_tokens[];
+
+#endif  /* PHALCON_MVC_VIEW_ENGINE_VOLT_SCANNER_H */
+

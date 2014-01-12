@@ -1,10 +1,13 @@
 1.3.0
+ - Make the source code compatible with PHP 5.6-dev and PHP 5.7-dev (#1762)
  - Code cleanup: get rid of compiler warnings, dead code elimination, code deduplication, use static code analysers to eliminate possible bugs
-   (#801, #802, #810, #825, #827, #838, #849, #942, #968, #1001, #1093, #1169, #1214, #1223, #1224, #1375, #1430)
- - Fixed various memory leaks (#469, #860, #910, #914, #916, #1031, #1067, #1249, #1273, #1291, #1309, #1345, #1455, #1470)
+   (#801, #802, #810, #825, #827, #838, #849, #942, #968, #1001, #1093, #1169, #1214, #1223, #1224, #1375, #1430, #1787)
+ - Fixed various memory leaks (#469, #860, #910, #914, #916, #1031, #1067, #1249, #1273, #1291, #1309, #1345, #1455, #1470, #1700)
  - Fixed memory access violations / segmentation faults / etc (#469, #849, #851, #852, #858, #860, #861, #895, #911, #918, #927, #928, #1000, #1077, #1112, #1113, #1131, #1149, #1173,
    #1272, #1284, #1302, #1340, #1343, #1368, #1369, #1371, #1376, #1379, #1392, #1451, #1466, #1485, #1494, #1501, #1504, #1509, #1567, #1607)
  - Fixed PHP notices, warnings and other incompatibilities (#894, #1222, #1315, #1413, #1427, #1428, #1529)
+ - Fixed inheritance chain for Phalcon\Forms\Exception, Phalcon\Loader\Exception, Phalcon\Http\Request\Exception (#1770)
+ - Major source coede optimizations (#1785)
  - Security fixes:
    - Hardening fixes (#1044)
    - Interface validation (#1043, #1048)
@@ -110,7 +113,7 @@
    - Fixed array to string conversion notice (#1103)
    - Add support for xdebug.file_link_format (#1401)
  - Phalcon\DI:
-   - Phalcon\Di optimizations (#1014)
+   - Phalcon\Di optimizations (#1014) with workarounds for NuSphere DBG (#1714)
    - Added Phalcon\Di\Service::isResolved() method (#1242)
    - Make sure that 'persistent' is resolved only when accessed for the first time (#1637)
    - Faster DI implementation by using object handlers (#1473)
@@ -129,12 +132,20 @@
  - Phalcon\Events:
    - Added support for weak references (#663)
    - Bug fix in Phalcon\Events\manager::attach() (#1331, #1337)
+ - Phalcon\Flash:
+   - Phalcon\Flash\Session::getMessage('key') returns now an empty array if the key is not found (#908, #920)
+   - Phalcon\Flash\Session::getMessages() incorrectly removed all messages (#1575)
+   - Implemented Phalcon\Flash\Session::isset() (#1342)
  - Phalcon\Forms:
    - Phalcon\Forms\Element\* classes now implement Phalcon\Form\ElementInterface
    - Added support for HTML attributes to Phalcon\Forms\Form::label() (#1029)
    - Phalcon\Forms\Form::getMessages() does not generate a fatal error if the form is valid (#1349)
    - Improvements to Phalcon\Forms\Form::add() (#1386)
    - Added Phalcon\Forms\Element\Radio class (#1646)
+   - Phalcon\Forms\Form::hasMessagesFor() returns boolean (#1764)
+   - Iterators for Phalcon\Forms\Form implemented via Zend API (#1765)
+   - Phalcon\Forms\Form::count() implemented via Zend API (#1765)
+   - Phalcon\Forms\Form optimizations (#1765)
  - Phalcon\Http:
    - Phalcon\Http\Cookie can be used without sessions (#875)
    - Phalcon\Http\Cookie does not ignore expire time (#897)
@@ -158,6 +169,9 @@
    - Implemented Phalcon\Logger\Adapter::isTransaction() (#1238)
    - Fixed a bug preventing the EMERGENCY log type from being displayed correctly (#1498)
    - Added Phalcon\Logger\Adapter\File::getPath() (#1495, #1508)
+   - Phalcon\Logger optimizations (#1716)
+   - Phalcon\Logger\Adapter::setLogLevel() is honored by transactions (#1716)
+   - Phalcon\Logger\Adapter::commit() now clears the queue (#1742)
  - Phalcon\Mvc:
    - Phalcon\Mvc\Application::handle() now checks whether the class exists before include()'ing its file (#812, #818)
    - Phalcon\Mvc\Model\Criteria::fromInput() now sets _modelName (#866, #873)
@@ -184,19 +198,21 @@
    - Added Phalcon\Mvc\View::getCurrentRenderLevel() (#907, #1326)
    - Bug fix in Phalcon\Mvc\Model\Resultset\Simple::toArray() (#1377)
    - Bug fixes in Volt compiler (#1387)
+   - Volt compiler optimizations (#1729)
    - Phalcon\Mvc\Model\Query\Builder optimizations (#1414)
    - Allow to set dirs without trailing slashes in Phalcon\Mvc\View (#406, #1440)
    - Phalcon\Mvc\Model\Validator::getOption() returns null if option does not exists (#1531)
    - Added Phalcon\Mvc\Model::selectWriteConnection() (#1519)
    - Added Phalcon\Mvc\Router\Group::convert()/getConverters() (#1555, #1572)
+   - Added Phalcon\Mvc\Router\Route::getGroup() (#1682)
+   - Added Phalcon\Mvc\Router\Group::getName() and setName() (#1682)
    - Faster Phalcon\Mvc\Model\Row (#1606)
+   - Optimized Phalcon\Mvc\Router\Group (#1682)
    - Bug fix: no arguments were passed to beforeMatch handler in Phalcon\Mvc\Router (#1556)
    - Added diagnostics when a validator returns false but does not call appendMessage() (#1664)
    - Fixed handling of numeric namespaces/modules/controllers/actions (#1688)
- - Phalcon\Flash:
-   - Phalcon\Flash\Session::getMessage('key') returns now an empty array if the key is not found (#908, #920)
-   - Phalcon\Flash\Session::getMessages() incorrectly removed all messages (#1575)
-   - Implemented Phalcon\Flash\Session::isset() (#1342)
+   - Added Phalcon\Mvc\View::exists() and Phalcon\Mvc\View(\Simple)::getRegisteredEngines() (#1707)
+   - Volt: fixed bug in email_filed() (#1723)
  - Phalcon\Paginator:
    - Phalcon\Paginator\Adapter\Model returns correct results even when page number is incorrect (#1654)
    - Optimized Phalcon\Paginator\Adapter\QueryBuilder (#1632)
@@ -212,9 +228,12 @@
    - Phalcon\Security\Exception inherits from Phalcon\Exception, not from \Phalcon\DI\Exception
    - Added Phalcon\Security::computeHmac() (#1347)
    - Bug fixes (#1347)
+   - Constant-time string comparison in Phalcon\Security::checkHash() to prevent timing attacks (#1755)
  - Phalcon\Session:
    - Fix Phalcon\Session\Bag::remove() (#1637)
    - Phalcon\Session\Adapter::get() may optionally remove the data from session (#1358)
+   - Phalcon\Session\Adapter optimizations (#1624)
+   - Phalcon\Session\Adapter::__destruct() now calls session_write_close() (#1624)
  - Phalcon\Tag:
    - Fixed bugs (#903)
    - Fixed radio button generation (#947)
@@ -229,6 +248,7 @@
    - Added support for error codes (#1171)
    - Bug fixes (#1399)
    - Optimized Phalcon\Validation\Message\Group by using native iterators (#1657)
+   - Optimized Phalcon\Validation\Message\Group by using object handlers (#1765)
  - Unit tests:
    - Travis CI imporvements (#819, #846, #949)
    - Use markTestSkipped() instead of echo (#862)

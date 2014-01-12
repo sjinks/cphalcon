@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -19,23 +19,17 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#include "php.h"
-#include "php_phalcon.h"
-#include "phalcon.h"
+#include "image/adapter/gd.h"
+#include "image.h"
+#include "image/adapter.h"
+#include "image/adapterinterface.h"
+#include "image/exception.h"
 
-#include "Zend/zend_operators.h"
-#include "Zend/zend_exceptions.h"
-#include "Zend/zend_interfaces.h"
-
-#include "ext/standard/php_versioning.h"
+#include <ext/standard/php_versioning.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
-
 #include "kernel/array.h"
 #include "kernel/string.h"
 #include "kernel/concat.h"
@@ -60,7 +54,61 @@
  *	}
  *</code>
  */
+zend_class_entry *phalcon_image_adapter_gd_ce;
 
+PHP_METHOD(Phalcon_Image_Adapter_GD, check);
+PHP_METHOD(Phalcon_Image_Adapter_GD, __construct);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _resize);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _liquidRescale);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _crop);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _rotate);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _flip);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _sharpen);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _reflection);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _watermark);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _text);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _mask);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _background);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _blur);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _pixelate);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _save);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _render);
+PHP_METHOD(Phalcon_Image_Adapter_GD, _create);
+PHP_METHOD(Phalcon_Image_Adapter_GD, __destruct);
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_image_adapter_gd___construct, 0, 0, 1)
+	ZEND_ARG_INFO(0, file)
+	ZEND_ARG_INFO(0, width)
+	ZEND_ARG_INFO(0, height)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_image_adapter_gd__create, 0, 0, 2)
+	ZEND_ARG_INFO(0, width)
+	ZEND_ARG_INFO(0, height)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry phalcon_image_adapter_gd_method_entry[] = {
+	PHP_ME(Phalcon_Image_Adapter_GD, check, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	PHP_ME(Phalcon_Image_Adapter_GD, __construct, arginfo_phalcon_image_adapter_gd___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(Phalcon_Image_Adapter_GD, _resize, arginfo_phalcon_image_adapterinterface_resize, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _liquidRescale, arginfo_phalcon_image_adapter_liquidrescale, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _crop, arginfo_phalcon_image_adapterinterface_crop, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _rotate, arginfo_phalcon_image_adapterinterface_rotate, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _flip, arginfo_phalcon_image_adapterinterface_flip, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _sharpen, arginfo_phalcon_image_adapterinterface_sharpen, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _reflection, arginfo_phalcon_image_adapterinterface_reflection, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _watermark, arginfo_phalcon_image_adapterinterface_watermark, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _text, arginfo_phalcon_image_adapter_text, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _mask, arginfo_phalcon_image_adapter_mask, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _background, arginfo_phalcon_image_adapterinterface_background, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _blur, arginfo_phalcon_image_adapter_blur, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _pixelate, arginfo_phalcon_image_adapter_pixelate, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _save, arginfo_phalcon_image_adapterinterface_save, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _render, arginfo_phalcon_image_adapterinterface_render, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, _create, arginfo_phalcon_image_adapter_gd__create, ZEND_ACC_PROTECTED)
+	PHP_ME(Phalcon_Image_Adapter_GD, __destruct, NULL, ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)
+	PHP_FE_END
+};
 
 /**
  * Phalcon\Image\Adapter\GD initializer
@@ -354,7 +402,7 @@ PHP_METHOD(Phalcon_Image_Adapter_GD, _resize) {
 		
 		if (zend_is_true(ret)) {
 			phalcon_call_func_p1_noret("imagedestroy", image);
-			image = tmp_image;
+			PHALCON_CPY_WRT_CTOR(image, tmp_image);
 		}
 	} else {
 		PHALCON_INIT_VAR(pre_width);
@@ -674,7 +722,7 @@ PHP_METHOD(Phalcon_Image_Adapter_GD, _sharpen) {
 	}
 
 	PHALCON_INIT_NVAR(tmp_amount);
-	ZVAL_LONG(tmp_amount, floor(a*100+0.5)/100);
+	ZVAL_LONG(tmp_amount, (long int)(floor(a*100.0+0.5)/100));
 
 	PHALCON_INIT_VAR(matrix);
 	array_init_size(matrix, 3);
@@ -883,13 +931,13 @@ PHP_METHOD(Phalcon_Image_Adapter_GD, _watermark) {
 
 	int_opacity = Z_LVAL_P(opacity);
 	if (int_opacity < 100) {
-		num = (int_opacity * 127 / 100) - 127;
+		num = (int_opacity * 127.0 / 100) - 127;
 
 		if (num < 0) {
-			num = num * -1;
+			num = -num;
 		}
 
-		int_opacity = num;
+		int_opacity = (int)num;
 
 		PHALCON_INIT_VAR(op);
 		ZVAL_LONG(op, int_opacity);
@@ -1240,13 +1288,13 @@ PHP_METHOD(Phalcon_Image_Adapter_GD, _background) {
 
 	int_opacity = Z_LVAL_P(opacity);
 
-	num = (int_opacity * 127 / 100) - 127;
+	num = (int_opacity * 127.0 / 100) - 127;
 
 	if (num < 0) {
 		num = -num;
 	}
 
-	int_opacity = num;
+	int_opacity = (int)num;
 
 	PHALCON_OBS_VAR(background);
 	phalcon_call_method_p2_ex(background, &background, this_ptr, "_create", width, height);

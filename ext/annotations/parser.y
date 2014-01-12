@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -27,22 +27,16 @@
 
 %include {
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "php.h"
-#include "ext/standard/php_smart_str.h"
 #include "php_phalcon.h"
-#include "phalcon.h"
 
-#include "parser.h"
-#include "scanner.h"
-#include "annot.h"
+#include <ext/standard/php_smart_str.h>
+
+#include "annotations/parser.h"
+#include "annotations/scanner.h"
+#include "annotations/annot.h"
+#include "annotations/exception.h"
 
 #include "kernel/main.h"
-#include "kernel/memory.h"
-#include "kernel/fcall.h"
 #include "kernel/exception.h"
 
 #include "interned-strings.h"
@@ -163,8 +157,8 @@ static zval *phannot_ret_annotation(phannot_parser_token *name, zval *arguments,
 			char *token_name = NULL;
 			const phannot_token_names *tokens = phannot_tokens;
 			int token_found = 0;
-			int active_token = status->scanner_state->active_token;
-			int near_length = status->scanner_state->start_length;
+			uint active_token = status->scanner_state->active_token;
+			uint near_length = status->scanner_state->start_length;
 
 			if (active_token) {
 				do {

@@ -2,7 +2,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -17,20 +17,15 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include "php.h"
 #include "php_phalcon.h"
+
+#ifdef PHALCON_USE_PHP_SESSION
+#include <ext/session/php_session.h>
+#endif
 
 #include "kernel/main.h"
 #include "kernel/fcall.h"
 #include "kernel/session.h"
-
-#ifdef PHALCON_USE_PHP_SESSION
-#include "ext/session/php_session.h"
-#endif
 
 void phalcon_session_start(TSRMLS_D)
 {
@@ -88,4 +83,9 @@ void phalcon_set_session_id(zval *sid TSRMLS_DC)
 #else
 	phalcon_call_func_params(NULL, NULL, SL("session_id") TSRMLS_CC, 1, sid);
 #endif
+}
+
+void phalcon_session_write_close(TSRMLS_D)
+{
+	phalcon_call_func_params(NULL, NULL, SL("session_write_close") TSRMLS_CC, 0);
 }

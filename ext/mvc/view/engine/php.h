@@ -3,7 +3,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -17,8 +17,13 @@
   +------------------------------------------------------------------------+
 */
 
-#ifndef PHALCON_RELEASE
+#ifndef PHALCON_MVC_VIEW_ENGINE_PHP_H
+#define PHALCON_MVC_VIEW_ENGINE_PHP_H
 
-extern int phalcon_assert_class(zval *object, char *class_name TSRMLS_DC);
+#include "php_phalcon.h"
 
-#endif
+extern zend_class_entry *phalcon_mvc_view_engine_php_ce;
+
+PHALCON_INIT_CLASS(Phalcon_Mvc_View_Engine_Php);
+
+#endif /* PHALCON_MVC_VIEW_ENGINE_PHP_H */

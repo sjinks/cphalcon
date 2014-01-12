@@ -2,7 +2,7 @@
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
   +------------------------------------------------------------------------+
-  | Copyright (c) 2011-2013 Phalcon Team (http://www.phalconphp.com)       |
+  | Copyright (c) 2011-2014 Phalcon Team (http://www.phalconphp.com)       |
   +------------------------------------------------------------------------+
   | This source file is subject to the New BSD License that is bundled     |
   | with this package in the file docs/LICENSE.txt.                        |
@@ -16,23 +16,15 @@
   +------------------------------------------------------------------------+
 */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "mvc/model/resultset/simple.h"
+#include "mvc/model/resultset.h"
+#include "mvc/model/resultsetinterface.h"
+#include "mvc/model/exception.h"
 
-#include "php.h"
-#include "php_phalcon.h"
-#include "phalcon.h"
-
-#include "Zend/zend_operators.h"
-#include "Zend/zend_exceptions.h"
-#include "Zend/zend_interfaces.h"
-
-#include "ext/pdo/php_pdo_driver.h"
+#include <ext/pdo/php_pdo_driver.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
-
 #include "kernel/object.h"
 #include "kernel/fcall.h"
 #include "kernel/operators.h"
@@ -48,7 +40,38 @@
  * Simple resultsets only contains complete objects.
  * This class builds every complete object as it is required
  */
+zend_class_entry *phalcon_mvc_model_resultset_simple_ce;
 
+PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, __construct);
+PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, valid);
+PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, toArray);
+PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, serialize);
+PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, unserialize);
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_model_resultset_simple___construct, 0, 0, 3)
+	ZEND_ARG_INFO(0, columnMap)
+	ZEND_ARG_INFO(0, model)
+	ZEND_ARG_INFO(0, result)
+	ZEND_ARG_INFO(0, cache)
+	ZEND_ARG_INFO(0, keepSnapshots)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_model_resultset_simple_toarray, 0, 0, 0)
+	ZEND_ARG_INFO(0, renameColumns)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_model_resultset_simple_unserialize, 0, 0, 1)
+	ZEND_ARG_INFO(0, data)
+ZEND_END_ARG_INFO()
+
+static const zend_function_entry phalcon_mvc_model_resultset_simple_method_entry[] = {
+	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, __construct, arginfo_phalcon_mvc_model_resultset_simple___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, valid, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, toArray, arginfo_phalcon_mvc_model_resultset_simple_toarray, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, serialize, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, unserialize, arginfo_phalcon_mvc_model_resultset_simple_unserialize, ZEND_ACC_PUBLIC)
+	PHP_FE_END
+};
 
 /**
  * Phalcon\Mvc\Model\Resultset\Simple initializer
@@ -181,7 +204,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, valid){
 			PHALCON_INIT_NVAR(row);
 			phalcon_array_get_current(row, rows);
 			if (PHALCON_IS_NOT_FALSE(row)) {
-				phalcon_array_next(rows);
+				zend_hash_move_forward(Z_ARRVAL_P(rows));
 			}
 		} else {
 			PHALCON_INIT_NVAR(row);
@@ -513,4 +536,3 @@ PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, unserialize){
 	
 	PHALCON_MM_RESTORE();
 }
-
