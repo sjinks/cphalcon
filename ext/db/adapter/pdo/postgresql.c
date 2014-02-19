@@ -121,7 +121,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, connect){
 	}
 
 	if (phalcon_array_isset_string_fetch(&password, descriptor, SS("password"))) {
-		/* There is a bug, at least in PHP 5.5.8: when the password is empty,
+		/* There is a bug in pdo_pgsql driver when the password is empty,
 		 * the driver tries to access invalid memory:
 		 *
 		 * if (dbh->password[0] != '\'' && dbh->password[strlen(dbh->password) - 1] != '\'')
@@ -129,7 +129,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, connect){
 		 * To avoid this we set the password to null
 		 */
 		if (Z_TYPE_P(password) == IS_STRING && Z_STRLEN_P(password) == 0) {
-			phalcon_array_update_string(descriptor, SL("password"), PHALCON_GLOBAL(z_null), PH_SEPARATE);
+			phalcon_array_update_string(&descriptor, SL("password"), PHALCON_GLOBAL(z_null), PH_SEPARATE);
 		}
 	}
 	
