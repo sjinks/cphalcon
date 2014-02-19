@@ -21,6 +21,7 @@
 #include "mvc/model/transaction/managerinterface.h"
 #include "mvc/model/transaction.h"
 #include "mvc/model/transaction/exception.h"
+#include "di.h"
 #include "diinterface.h"
 #include "di/injectionawareinterface.h"
 
@@ -175,8 +176,8 @@ PHP_METHOD(Phalcon_Mvc_Model_Transaction_Manager, __construct){
 	if (zend_is_true(dependency_injector)) {
 		phalcon_update_property_this(this_ptr, SL("_dependencyInjector"), dependency_injector TSRMLS_CC);
 	} else {
-		PHALCON_INIT_NVAR(dependency_injector);
-		phalcon_call_static(dependency_injector, "phalcon\\di", "getdefault");
+		PHALCON_OBSERVE_OR_NULLIFY_VAR(dependency_injector);
+		PHALCON_CALL_CE_STATIC(&dependency_injector, phalcon_di_ce, "getdefault");
 		phalcon_update_property_this(this_ptr, SL("_dependencyInjector"), dependency_injector TSRMLS_CC);
 	}
 	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
@@ -311,7 +312,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Transaction_Manager, get){
 			array_init_size(rollback_pendent, 2);
 			phalcon_array_append(&rollback_pendent, this_ptr, PH_SEPARATE);
 			add_next_index_stringl(rollback_pendent, SL("rollbackPendent"), 1);
-			phalcon_call_func_p1_noret("register_shutdown_function", rollback_pendent);
+			PHALCON_CALL_FUNCTION_NORET("register_shutdown_function", rollback_pendent);
 		}
 	
 		phalcon_update_property_bool(this_ptr, SL("_initialized"), 1 TSRMLS_CC);

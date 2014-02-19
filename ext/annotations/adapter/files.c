@@ -115,32 +115,28 @@ PHP_METHOD(Phalcon_Annotations_Adapter_Files, __construct){
  */
 PHP_METHOD(Phalcon_Annotations_Adapter_Files, read){
 
-	zval *key, *annotations_dir, *virtual_key, *path;
-	zval separator;
+	zval **key, *annotations_dir, *virtual_key, *path;
+
+	phalcon_fetch_params_ex(1, 0, &key);
+	PHALCON_ENSURE_IS_STRING(key);
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 1, 0, &key);
-	
 	annotations_dir = phalcon_fetch_nproperty_this(this_ptr, SL("_annotationsDir"), PH_NOISY_CC);
-	
-	INIT_ZVAL(separator);
-	ZVAL_STRINGL(&separator, "_", 1, 0);
 	
 	/** 
 	 * Paths must be normalized before be used as keys
 	 */
 	PHALCON_INIT_VAR(virtual_key);
-	phalcon_prepare_virtual_path(virtual_key, key, &separator TSRMLS_CC);
+	phalcon_prepare_virtual_path_ex(virtual_key, Z_STRVAL_PP(key), Z_STRLEN_PP(key), '_' TSRMLS_CC);
 	
 	PHALCON_INIT_VAR(path);
 	PHALCON_CONCAT_VVS(path, annotations_dir, virtual_key, ".php");
 	
 	if (phalcon_file_exists(path TSRMLS_CC) == SUCCESS) {
-		if (phalcon_require_ret(return_value, path TSRMLS_CC) == FAILURE) {
-			zval_dtor(return_value);
-			RETVAL_NULL();
-		}
+		zval *tmp = NULL;
+		RETURN_MM_ON_FAILURE(phalcon_require_ret(&tmp, Z_STRVAL_P(path) TSRMLS_CC));
+		RETVAL_ZVAL(tmp, 1, 1);
 	}
 	
 	PHALCON_MM_RESTORE();
@@ -154,32 +150,29 @@ PHP_METHOD(Phalcon_Annotations_Adapter_Files, read){
  */
 PHP_METHOD(Phalcon_Annotations_Adapter_Files, write){
 
-	zval *key, *data, *annotations_dir;
+	zval **key, **data, *annotations_dir;
 	zval *virtual_key, *path, *php_export;
 	zval *status;
-	zval separator;
 	smart_str exp = { NULL, 0, 0 };
+
+	phalcon_fetch_params_ex(2, 0, &key, &data);
+	PHALCON_ENSURE_IS_STRING(key);
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 2, 0, &key, &data);
-	
 	annotations_dir = phalcon_fetch_nproperty_this(this_ptr, SL("_annotationsDir"), PH_NOISY_CC);
-	
-	INIT_ZVAL(separator);
-	ZVAL_STRINGL(&separator, "_", 1, 0);
 	
 	/** 
 	 * Paths must be normalized before be used as keys
 	 */
 	PHALCON_INIT_VAR(virtual_key);
-	phalcon_prepare_virtual_path(virtual_key, key, &separator TSRMLS_CC);
+	phalcon_prepare_virtual_path_ex(virtual_key, Z_STRVAL_PP(key), Z_STRLEN_PP(key), '_' TSRMLS_CC);
 	
 	PHALCON_INIT_VAR(path);
 	PHALCON_CONCAT_VVS(path, annotations_dir, virtual_key, ".php");
 	
 	smart_str_appends(&exp, "<?php return ");
-	php_var_export_ex(&data, 0, &exp TSRMLS_CC);
+	php_var_export_ex(data, 0, &exp TSRMLS_CC);
 	smart_str_appendc(&exp, ';');
 	smart_str_0(&exp);
 	

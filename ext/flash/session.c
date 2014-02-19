@@ -34,6 +34,8 @@
 #include "kernel/array.h"
 #include "kernel/hash.h"
 
+#include "interned-strings.h"
+
 /**
  * Phalcon\Flash\Session
  *
@@ -140,7 +142,7 @@ PHP_METHOD(Phalcon_Flash_Session, _getSessionMessages){
 	}
 	
 	PHALCON_INIT_VAR(service);
-	ZVAL_STRING(service, "session", 1);
+	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
 	
 	PHALCON_INIT_VAR(session);
 	phalcon_call_method_p1(session, dependency_injector, "getshared", service);
@@ -178,7 +180,7 @@ PHP_METHOD(Phalcon_Flash_Session, _setSessionMessages){
 	}
 	
 	PHALCON_INIT_VAR(service);
-	ZVAL_STRING(service, "session", 1);
+	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
 	
 	PHALCON_INIT_VAR(session);
 	phalcon_call_method_p1(session, dependency_injector, "getshared", service);
@@ -199,7 +201,7 @@ PHP_METHOD(Phalcon_Flash_Session, _setSessionMessages){
  */
 PHP_METHOD(Phalcon_Flash_Session, message){
 
-	zval *type, *message, *messages = NULL, *empty_array;
+	zval *type, *message, *messages = NULL;
 
 	PHALCON_MM_GROW();
 
@@ -212,13 +214,7 @@ PHP_METHOD(Phalcon_Flash_Session, message){
 		array_init(messages);
 	}
 	
-	if (!phalcon_array_isset(messages, type)) {
-		PHALCON_INIT_VAR(empty_array);
-		array_init(empty_array);
-		phalcon_array_update_zval(&messages, type, &empty_array, PH_COPY);
-	}
-	
-	phalcon_array_update_append_multi_2(&messages, type, message, 0);
+	phalcon_array_append_multi_2(&messages, type, message, 0);
 	phalcon_call_method_p1_noret(this_ptr, "_setsessionmessages", messages);
 	
 	PHALCON_MM_RESTORE();

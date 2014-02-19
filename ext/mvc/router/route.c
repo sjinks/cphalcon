@@ -64,6 +64,12 @@ PHP_METHOD(Phalcon_Mvc_Router_Route, convert);
 PHP_METHOD(Phalcon_Mvc_Router_Route, getConverters);
 PHP_METHOD(Phalcon_Mvc_Router_Route, reset);
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_router_route___construct, 0, 0, 1)
+	ZEND_ARG_INFO(0, pattern)
+	ZEND_ARG_INFO(0, paths)
+	ZEND_ARG_INFO(0, httpMethods)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_router_route_setgroup, 0, 0, 1)
 	ZEND_ARG_INFO(0, group)
 ZEND_END_ARG_INFO()
@@ -82,7 +88,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_router_route_convert, 0, 0, 2)
 ZEND_END_ARG_INFO()
 
 static const zend_function_entry phalcon_mvc_router_route_method_entry[] = {
-	PHP_ME(Phalcon_Mvc_Router_Route, __construct, arginfo_phalcon_mvc_router_routeinterface___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(Phalcon_Mvc_Router_Route, __construct, arginfo_phalcon_mvc_router_route___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(Phalcon_Mvc_Router_Route, compilePattern, arginfo_phalcon_mvc_router_routeinterface_compilepattern, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Mvc_Router_Route, via, arginfo_phalcon_mvc_router_routeinterface_via, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Mvc_Router_Route, reConfigure, arginfo_phalcon_mvc_router_routeinterface_reconfigure, ZEND_ACC_PUBLIC)
@@ -124,7 +130,7 @@ PHALCON_INIT_CLASS(Phalcon_Mvc_Router_Route){
 	zend_declare_property_null(phalcon_mvc_router_route_ce, SL("_name"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_mvc_router_route_ce, SL("_beforeMatch"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_mvc_router_route_ce, SL("_group"), ZEND_ACC_PROTECTED TSRMLS_CC);
-	zend_declare_property_null(phalcon_mvc_router_route_ce, SL("_uniqueId"), ZEND_ACC_STATIC|ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_long(phalcon_mvc_router_route_ce, SL("_uniqueId"), 0, ZEND_ACC_STATIC|ZEND_ACC_PROTECTED TSRMLS_CC);
 
 	zend_class_implements(phalcon_mvc_router_route_ce TSRMLS_CC, 1, phalcon_mvc_router_routeinterface_ce);
 
@@ -420,7 +426,7 @@ PHP_METHOD(Phalcon_Mvc_Router_Route, reConfigure){
 			 * Process module name
 			 */
 			if (Z_TYPE_P(module_name) != IS_NULL) {
-				phalcon_array_update_string(&route_paths, SL("module"), &module_name, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&route_paths, SL("module"), module_name, PH_COPY | PH_SEPARATE);
 			}
 	
 			/** 
@@ -449,7 +455,7 @@ PHP_METHOD(Phalcon_Mvc_Router_Route, reConfigure){
 					 * Update the namespace
 					 */
 					if (zend_is_true(namespace_name)) {
-						phalcon_array_update_string(&route_paths, SL("namespace"), &namespace_name, PH_COPY | PH_SEPARATE);
+						phalcon_array_update_string(&route_paths, SL("namespace"), namespace_name, PH_COPY | PH_SEPARATE);
 					}
 				} else {
 					PHALCON_CPY_WRT(real_class_name, controller_name);
@@ -464,14 +470,14 @@ PHP_METHOD(Phalcon_Mvc_Router_Route, reConfigure){
 				/** 
 				 * Update the controller path
 				 */
-				phalcon_array_update_string(&route_paths, SL("controller"), &lower_name, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&route_paths, SL("controller"), lower_name, PH_COPY | PH_SEPARATE);
 			}
 	
 			/** 
 			 * Process action name
 			 */
 			if (Z_TYPE_P(action_name) != IS_NULL) {
-				phalcon_array_update_string(&route_paths, SL("action"), &action_name, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&route_paths, SL("action"), action_name, PH_COPY | PH_SEPARATE);
 			}
 		} else {
 			PHALCON_CPY_WRT(route_paths, paths);
@@ -659,7 +665,7 @@ PHP_METHOD(Phalcon_Mvc_Router_Route, getReversedPaths){
 		PHALCON_GET_HKEY(path, ah0, hp0);
 		PHALCON_GET_HVALUE(position);
 	
-		phalcon_array_update_zval(&return_value, position, &path, PH_COPY);
+		phalcon_array_update_zval(&return_value, position, path, PH_COPY);
 	
 		zend_hash_move_forward_ex(ah0, &hp0);
 	}

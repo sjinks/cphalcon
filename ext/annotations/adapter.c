@@ -17,9 +17,8 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
-
 #include "annotations/adapter.h"
+#include "annotations/adapterinterface.h"
 #include "annotations/collection.h"
 #include "annotations/reader.h"
 #include "annotations/reflection.h"
@@ -97,6 +96,8 @@ PHALCON_INIT_CLASS(Phalcon_Annotations_Adapter){
 	zend_declare_property_null(phalcon_annotations_adapter_ce, SL("_reader"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_annotations_adapter_ce, SL("_annotations"), ZEND_ACC_PROTECTED TSRMLS_CC);
 
+	zend_class_implements(phalcon_annotations_adapter_ce TSRMLS_CC, 1, phalcon_annotations_adapterinterface_ce);
+
 	return SUCCESS;
 }
 
@@ -157,26 +158,22 @@ PHP_METHOD(Phalcon_Annotations_Adapter, get){
 	 * Get the class name if it's an object
 	 */
 	if (Z_TYPE_P(class_name) == IS_OBJECT) {
+		const zend_class_entry *ce = Z_OBJCE_P(class_name);
 		PHALCON_INIT_VAR(real_class_name);
-		phalcon_get_class(real_class_name, class_name, 0 TSRMLS_CC);
+		ZVAL_STRINGL(real_class_name, ce->name, ce->name_length, !IS_INTERNED(ce->name));
 	} else {
 		PHALCON_CPY_WRT(real_class_name, class_name);
 	}
 	
-	PHALCON_OBS_VAR(annotations);
-	phalcon_read_property_this(&annotations, this_ptr, SL("_annotations"), PH_NOISY_CC);
-	if (Z_TYPE_P(annotations) == IS_ARRAY) { 
-		if (phalcon_array_isset(annotations, real_class_name)) {
-			PHALCON_OBS_VAR(class_annotations);
-			phalcon_array_fetch(&class_annotations, annotations, real_class_name, PH_NOISY);
-			RETURN_CCTOR(class_annotations);
-		}
+	annotations = phalcon_fetch_nproperty_this(this_ptr, SL("_annotations"), PH_NOISY_CC);
+	if (phalcon_array_isset_fetch(&class_annotations, annotations, real_class_name)) {
+		RETURN_CTOR(class_annotations);
 	}
 	
 	/** 
 	 * Try to read the annotations from the adapter
 	 */
-	PHALCON_INIT_NVAR(class_annotations);
+	PHALCON_INIT_VAR(class_annotations);
 	phalcon_call_method_p1(class_annotations, this_ptr, "read", real_class_name);
 	if (Z_TYPE_P(class_annotations) == IS_NULL) {
 	
@@ -202,7 +199,7 @@ PHP_METHOD(Phalcon_Annotations_Adapter, get){
 		}
 	}
 	
-	RETURN_CCTOR(class_annotations);
+	RETURN_CTOR(class_annotations);
 }
 
 /**
@@ -278,7 +275,7 @@ PHP_METHOD(Phalcon_Annotations_Adapter, getMethod){
 				PHALCON_GET_HVALUE(method);
 	
 				if (PHALCON_IS_EQUAL(name, method_name)) {
-					RETURN_CCTOR(method);
+					RETURN_CTOR(method);
 				}
 	
 				zend_hash_move_forward_ex(ah0, &hp0);
@@ -369,7 +366,7 @@ PHP_METHOD(Phalcon_Annotations_Adapter, getProperty){
 				PHALCON_GET_HVALUE(property);
 	
 				if (PHALCON_IS_EQUAL(name, property_name)) {
-					RETURN_CCTOR(property);
+					RETURN_CTOR(property);
 				}
 	
 				zend_hash_move_forward_ex(ah0, &hp0);

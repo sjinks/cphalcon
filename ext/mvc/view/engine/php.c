@@ -66,30 +66,34 @@ PHALCON_INIT_CLASS(Phalcon_Mvc_View_Engine_Php){
  */
 PHP_METHOD(Phalcon_Mvc_View_Engine_Php, render){
 
-	zval *path, *params, *must_clean = NULL, *contents;
+	zval **path, **params, **must_clean = NULL, *contents;
 	zval *view;
+	int clean;
 
-	phalcon_fetch_params(0, 2, 1, &path, &params, &must_clean);
+	phalcon_fetch_params_ex(2, 1, &path, &params, &must_clean);
+	PHALCON_ENSURE_IS_STRING(path);
 	
 	if (!must_clean) {
-		must_clean = PHALCON_GLOBAL(z_false);
+		must_clean = &PHALCON_GLOBAL(z_false);
 	}
 	
-	if (PHALCON_IS_TRUE(must_clean)) {
+	clean = PHALCON_IS_TRUE(*must_clean);
+
+	if (clean) {
 		phalcon_ob_clean(TSRMLS_C);
 	}
 	
 	/** 
 	 * Create the variables in local symbol table
 	 */
-	if (Z_TYPE_P(params) == IS_ARRAY) { 
+	if (Z_TYPE_PP(params) == IS_ARRAY) {
 		if (!EG(active_symbol_table)) {
 			zend_rebuild_symbol_table(TSRMLS_C);
 		}
 
 		zend_hash_merge_ex(
 			EG(active_symbol_table),
-			Z_ARRVAL_P(params),
+			Z_ARRVAL_PP(params),
 			(copy_ctor_func_t)zval_add_ref,
 			sizeof(zval*),
 			phalcon_mvc_view_engine_php_symtable_merger
@@ -104,16 +108,16 @@ PHP_METHOD(Phalcon_Mvc_View_Engine_Php, render){
 	/** 
 	 * Require the file
 	 */
-	if (phalcon_require(path TSRMLS_CC) == FAILURE) {
+	if (phalcon_require(Z_STRVAL_PP(path) TSRMLS_CC) == FAILURE) {
 		RETURN_FALSE;
 	}
 
-	if (PHALCON_IS_TRUE(must_clean)) {
+	if (clean) {
 		PHALCON_ALLOC_GHOST_ZVAL(contents);
 		phalcon_ob_get_contents(contents TSRMLS_CC);
 	
 		view = phalcon_fetch_nproperty_this(this_ptr, SL("_view"), PH_NOISY_CC);
-		phalcon_call_method_params(NULL, NULL, view, SL("setcontent"), zend_inline_hash_func(SS("setcontent")) TSRMLS_CC, 1, contents);
+		RETURN_ON_FAILURE(phalcon_call_method_params(NULL, NULL, view, SL("setcontent"), zend_inline_hash_func(SS("setcontent")) TSRMLS_CC, 1, contents));
 	}
 
 	RETURN_TRUE;

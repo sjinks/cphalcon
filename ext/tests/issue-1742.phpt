@@ -2,6 +2,8 @@
 Phalcon\Logger\Adapter::commit() does not clear the queue - https://github.com/phalcon/cphalcon/issues/1742
 --SKIPIF--
 <?php include('skipif.inc'); ?>
+--INI--
+date.timezone=UTC
 --FILE--
 <?php
 class MyStreamAdapter extends \Phalcon\Logger\Adapter\Stream
@@ -14,8 +16,8 @@ class MyStreamAdapter extends \Phalcon\Logger\Adapter\Stream
 
 $logger = new MyStreamAdapter("php://stdout");
 $logger->begin();
-$logger->log('info', \Phalcon\Logger::INFO);
-$logger->log('critical', \Phalcon\Logger::CRITICAL);
+$logger->log(\Phalcon\Logger::INFO, 'info');
+$logger->log(\Phalcon\Logger::CRITICAL, 'critical');
 echo $logger->getQueueSize(), PHP_EOL;
 $logger->commit();
 echo $logger->getQueueSize(), PHP_EOL;

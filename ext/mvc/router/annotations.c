@@ -425,7 +425,7 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, handle){
 	/** 
 	 * Call the parent handle method()
 	 */
-	phalcon_call_parent_p1_noret(this_ptr, phalcon_mvc_router_annotations_ce, "handle", real_uri);
+	PHALCON_CALL_PARENT_NORET(phalcon_mvc_router_annotations_ce, this_ptr, "handle", real_uri);
 	
 	PHALCON_MM_RESTORE();
 }
@@ -549,18 +549,18 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, processActionAnnotation){
 		 * Update the module if any
 		 */
 		if (Z_TYPE_P(module) == IS_STRING) {
-			phalcon_array_update_string(&paths, SL("module"), &module, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_string(&paths, SL("module"), module, PH_COPY);
 		}
 	
 		/** 
 		 * Update the namespace if any
 		 */
 		if (Z_TYPE_P(namespace) == IS_STRING) {
-			phalcon_array_update_string(&paths, SL("namespace"), &namespace, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_string(&paths, SL("namespace"), namespace, PH_COPY);
 		}
 	
-		phalcon_array_update_string(&paths, SL("controller"), &controller, PH_COPY | PH_SEPARATE);
-		phalcon_array_update_string(&paths, SL("action"), &action_name, PH_COPY | PH_SEPARATE);
+		phalcon_array_update_string(&paths, SL("controller"), controller, PH_COPY);
+		phalcon_array_update_string(&paths, SL("action"), action_name, PH_COPY);
 	
 		PHALCON_INIT_VAR(position);
 		ZVAL_LONG(position, 0);

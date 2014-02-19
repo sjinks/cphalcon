@@ -31,6 +31,8 @@
 #include "kernel/operators.h"
 #include "kernel/concat.h"
 
+#include "interned-strings.h"
+
 /**
  * Phalcon\Mvc\Model\Validator\StringLength
  *
@@ -135,10 +137,10 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_StringLength, validate){
 	 * Check if mbstring is available to calculate the correct length
 	 */
 	if (phalcon_function_exists_ex(SS("mb_strlen") TSRMLS_CC) == SUCCESS) {
-		PHALCON_INIT_VAR(length);
-		phalcon_call_func_p1(length, "mb_strlen", value);
+		PHALCON_OBS_VAR(length);
+		PHALCON_CALL_FUNCTION(&length, "mb_strlen", value);
 	} else {
-		PHALCON_INIT_NVAR(length);
+		PHALCON_INIT_VAR(length);
 		phalcon_fast_strlen(length, value);
 	}
 	
@@ -182,7 +184,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_StringLength, validate){
 			 * Is code set
 			 */
 			PHALCON_INIT_NVAR(option);
-			ZVAL_STRING(option, "code", 1);
+			PHALCON_ZVAL_MAYBE_INTERNED_STRING(option, phalcon_interned_code);
 
 			PHALCON_INIT_VAR(is_set_code);
 			phalcon_call_method_p1(is_set_code, this_ptr, "issetoption", option);
@@ -193,7 +195,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_StringLength, validate){
 				ZVAL_LONG(code, 0);
 			}
 
-			phalcon_call_method_p3_noret(this_ptr, "appendmessage", message, field, type);
+			phalcon_call_method_p4_noret(this_ptr, "appendmessage", message, field, type, code);
 			RETURN_MM_FALSE;
 		}
 	}
@@ -232,7 +234,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_StringLength, validate){
 			 * Is code set
 			 */
 			PHALCON_INIT_NVAR(option);
-			ZVAL_STRING(option, "code", 1);
+			PHALCON_ZVAL_MAYBE_INTERNED_STRING(option, phalcon_interned_code);
 
 			PHALCON_INIT_VAR(is_set_code);
 			phalcon_call_method_p1(is_set_code, this_ptr, "issetoption", option);

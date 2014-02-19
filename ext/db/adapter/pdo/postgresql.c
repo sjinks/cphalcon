@@ -120,7 +120,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, connect){
 		phalcon_array_unset_string(&descriptor, SS("schema"), PH_SEPARATE);
 	}
 	
-	phalcon_call_parent_p1_noret(this_ptr, phalcon_db_adapter_pdo_postgresql_ce, "connect", descriptor);
+	PHALCON_CALL_PARENT_NORET(phalcon_db_adapter_pdo_postgresql_ce, this_ptr, "connect", descriptor);
 	
 	/** 
 	 * Execute the search path in the after connect
@@ -225,7 +225,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, describeColumns){
 			if (phalcon_memnstr_str(column_type, SL("int"))) {
 				phalcon_array_update_string_long(&definition, SL("type"), 0, PH_SEPARATE);
 				phalcon_array_update_string_bool(&definition, SL("isNumeric"), 1, PH_SEPARATE);
-				phalcon_array_update_string(&definition, SL("size"), &numeric_size, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&definition, SL("size"), numeric_size, PH_COPY | PH_SEPARATE);
 				phalcon_array_update_string_long(&definition, SL("bindType"), 1, PH_SEPARATE);
 				break;
 			}
@@ -235,7 +235,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, describeColumns){
 			 */
 			if (phalcon_memnstr_str(column_type, SL("varying"))) {
 				phalcon_array_update_string_long(&definition, SL("type"), 2, PH_SEPARATE);
-				phalcon_array_update_string(&definition, SL("size"), &char_size, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&definition, SL("size"), char_size, PH_COPY | PH_SEPARATE);
 				break;
 			}
 
@@ -254,8 +254,8 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, describeColumns){
 			if (phalcon_memnstr_str(column_type, SL("numeric"))) {
 				phalcon_array_update_string_long(&definition, SL("type"), 3, PH_SEPARATE);
 				phalcon_array_update_string_bool(&definition, SL("isNumeric"), 1, PH_SEPARATE);
-				phalcon_array_update_string(&definition, SL("size"), &numeric_size, PH_COPY | PH_SEPARATE);
-				phalcon_array_update_string(&definition, SL("scale"), &numeric_scale, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&definition, SL("size"), numeric_size, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&definition, SL("scale"), numeric_scale, PH_COPY | PH_SEPARATE);
 				phalcon_array_update_string_long(&definition, SL("bindType"), 32, PH_SEPARATE);
 				break;
 			}
@@ -265,7 +265,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, describeColumns){
 			 */
 			if (phalcon_memnstr_str(column_type, SL("char"))) {
 				phalcon_array_update_string_long(&definition, SL("type"), 5, PH_SEPARATE);
-				phalcon_array_update_string(&definition, SL("size"), &char_size, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&definition, SL("size"), char_size, PH_COPY | PH_SEPARATE);
 				break;
 			}
 
@@ -283,7 +283,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, describeColumns){
 			 */
 			if (phalcon_memnstr_str(column_type, SL("text"))) {
 				phalcon_array_update_string_long(&definition, SL("type"), 6, PH_SEPARATE);
-				phalcon_array_update_string(&definition, SL("size"), &char_size, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&definition, SL("size"), char_size, PH_COPY | PH_SEPARATE);
 				break;
 			}
 
@@ -293,7 +293,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, describeColumns){
 			if (phalcon_memnstr_str(column_type, SL("float"))) {
 				phalcon_array_update_string_long(&definition, SL("type"), 7, PH_SEPARATE);
 				phalcon_array_update_string_bool(&definition, SL("isNumeric"), 1, PH_SEPARATE);
-				phalcon_array_update_string(&definition, SL("size"), &numeric_size, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&definition, SL("size"), numeric_size, PH_COPY | PH_SEPARATE);
 				phalcon_array_update_string_long(&definition, SL("bindType"), 32, PH_SEPARATE);
 				break;
 			}
@@ -331,7 +331,7 @@ PHP_METHOD(Phalcon_Db_Adapter_Pdo_Postgresql, describeColumns){
 		if (Z_TYPE_P(old_column) == IS_NULL) {
 			phalcon_array_update_string_bool(&definition, SL("first"), 1, PH_SEPARATE);
 		} else {
-			phalcon_array_update_string(&definition, SL("after"), &old_column, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_string(&definition, SL("after"), old_column, PH_COPY | PH_SEPARATE);
 		}
 	
 		/** 

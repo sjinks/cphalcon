@@ -17,12 +17,13 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
-
 #include "di/service.h"
 #include "di/serviceinterface.h"
 #include "di/service/builder.h"
 #include "di/exception.h"
+#include "events/managerinterface.h"
+
+#include <Zend/zend_closures.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -59,18 +60,24 @@ PHP_METHOD(Phalcon_DI_Service, getParameter);
 PHP_METHOD(Phalcon_DI_Service, isResolved);
 PHP_METHOD(Phalcon_DI_Service, __set_state);
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_di_service___construct, 0, 0, 2)
+	ZEND_ARG_INFO(0, name)
+	ZEND_ARG_INFO(0, definition)
+	ZEND_ARG_INFO(0, shared)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry phalcon_di_service_method_entry[] = {
-	PHP_ME(Phalcon_DI_Service, __construct, arginfo_phalcon_di_serviceinterface___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
-	PHP_ME(Phalcon_DI_Service, getName, arginfo_phalcon_di_serviceinterface_empty, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_DI_Service, __construct, arginfo_phalcon_di_service___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(Phalcon_DI_Service, getName, arginfo_phalcon_di_serviceinterface_getname, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Service, setShared, arginfo_phalcon_di_serviceinterface_setshared, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_DI_Service, isShared, arginfo_phalcon_di_serviceinterface_empty, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_DI_Service, isShared, arginfo_phalcon_di_serviceinterface_isshared, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Service, setSharedInstance, arginfo_phalcon_di_service_setsharedinstance, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Service, setDefinition, arginfo_phalcon_di_serviceinterface_setdefinition, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_DI_Service, getDefinition, arginfo_phalcon_di_serviceinterface_empty, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_DI_Service, getDefinition, arginfo_phalcon_di_serviceinterface_getdefinition, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Service, resolve, arginfo_phalcon_di_serviceinterface_resolve, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Service, setParameter, arginfo_phalcon_di_service_setparameter, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Service, getParameter, arginfo_phalcon_di_service_getparameter, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_DI_Service, isResolved, arginfo_phalcon_di_serviceinterface_empty, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_DI_Service, isResolved, arginfo_phalcon_di_serviceinterface_isresolved, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Service, __set_state, arginfo_phalcon_di_service___set_state, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_FE_END
 };
@@ -198,7 +205,7 @@ PHP_METHOD(Phalcon_DI_Service, getDefinition){
  *
  * @param array $parameters
  * @param Phalcon\DiInterface $dependencyInjector
- * @return mixed
+ * @return object
  */
 PHP_METHOD(Phalcon_DI_Service, resolve){
 
@@ -241,7 +248,7 @@ PHP_METHOD(Phalcon_DI_Service, resolve){
 		/** 
 		 * String definitions can be class names without implicit parameters
 		 */
-		if (phalcon_class_exists(definition, 1 TSRMLS_CC)) {
+		if (phalcon_class_exists(Z_STRVAL_P(definition), Z_STRLEN_P(definition), 1 TSRMLS_CC)) {
 			if (Z_TYPE_P(parameters) == IS_ARRAY) { 
 				if (phalcon_create_instance_params(instance, definition, parameters TSRMLS_CC) == FAILURE) {
 					RETURN_MM();
@@ -259,7 +266,7 @@ PHP_METHOD(Phalcon_DI_Service, resolve){
 		 * Object definitions can be a Closure or an already resolved instance
 		 */
 		if (likely(Z_TYPE_P(definition) == IS_OBJECT)) {
-			if (phalcon_is_instance_of(definition, SL("Closure") TSRMLS_CC)) {
+			if (instanceof_function(Z_OBJCE_P(definition), zend_ce_closure TSRMLS_CC)) {
 				if (Z_TYPE_P(parameters) == IS_ARRAY) { 
 					PHALCON_CALL_USER_FUNC_ARRAY(instance, definition, parameters);
 				} else {
@@ -346,17 +353,17 @@ PHP_METHOD(Phalcon_DI_Service, setParameter){
 	if (phalcon_array_isset_string(definition, SS("arguments"))) {
 		PHALCON_OBS_VAR(arguments);
 		phalcon_array_fetch_string(&arguments, definition, SL("arguments"), PH_NOISY);
-		phalcon_array_update_zval(&arguments, position, &parameter, PH_COPY | PH_SEPARATE);
+		phalcon_array_update_zval(&arguments, position, parameter, PH_COPY | PH_SEPARATE);
 	} else {
 		PHALCON_INIT_NVAR(arguments);
 		array_init_size(arguments, 1);
-		phalcon_array_update_zval(&arguments, position, &parameter, PH_COPY | PH_SEPARATE);
+		phalcon_array_update_zval(&arguments, position, parameter, PH_COPY | PH_SEPARATE);
 	}
 	
 	/** 
 	 * Re-update the arguments
 	 */
-	phalcon_array_update_string(&definition, SL("arguments"), &arguments, PH_COPY | PH_SEPARATE);
+	phalcon_array_update_string(&definition, SL("arguments"), arguments, PH_COPY | PH_SEPARATE);
 	
 	/** 
 	 * Re-update the definition

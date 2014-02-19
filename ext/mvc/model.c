@@ -27,6 +27,7 @@
 #include "mvc/model/resultinterface.h"
 #include "mvc/model/validationfailed.h"
 #include "mvc/model/validatorinterface.h"
+#include "di.h"
 #include "diinterface.h"
 #include "di/injectionawareinterface.h"
 #include "db/rawvalue.h"
@@ -45,6 +46,8 @@
 #include "kernel/string.h"
 #include "kernel/file.h"
 #include "kernel/variables.h"
+
+#include "interned-strings.h"
 
 /**
  * Phalcon\Mvc\Model
@@ -380,14 +383,18 @@ static int phalcon_mvc_model_get_messages_from_model(zval *this_ptr, zval *model
 
 	for (
 		zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(messages), &hp);
-		zend_hash_get_current_data_ex(Z_ARRVAL_P(messages), (void**)&message, &hp) == SUCCESS && !EG(exception);
+		zend_hash_get_current_data_ex(Z_ARRVAL_P(messages), (void**)&message, &hp) == SUCCESS;
 		zend_hash_move_forward_ex(Z_ARRVAL_P(messages), &hp)
 	) {
 		if (Z_TYPE_PP(message) == IS_OBJECT) {
-			phalcon_call_method_params(NULL, NULL, *message, SL("setmodel"), zend_inline_hash_func(SS("setmodel")) TSRMLS_CC, 1, target);
+			if (FAILURE == phalcon_call_method_params(NULL, NULL, *message, SL("setmodel"), zend_inline_hash_func(SS("setmodel")) TSRMLS_CC, 1, target)) {
+				break;
+			}
 		}
 
-		phalcon_call_method_params(NULL, NULL, this_ptr, SL("appendmessage"), zend_inline_hash_func(SS("appendmessage")) TSRMLS_CC, 1, *message);
+		if (FAILURE == phalcon_call_method_params(NULL, NULL, this_ptr, SL("appendmessage"), zend_inline_hash_func(SS("appendmessage")) TSRMLS_CC, 1, *message)) {
+			break;
+		}
 	}
 
 	zval_ptr_dtor(&messages);
@@ -425,8 +432,8 @@ PHP_METHOD(Phalcon_Mvc_Model, __construct){
 	 * We use a default DI if the user doesn't define one
 	 */
 	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-		PHALCON_INIT_NVAR(dependency_injector);
-		phalcon_call_static(dependency_injector, "phalcon\\di", "getdefault");
+		PHALCON_OBSERVE_OR_NULLIFY_VAR(dependency_injector);
+		PHALCON_CALL_CE_STATIC(&dependency_injector, phalcon_di_ce, "getdefault");
 	}
 	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
 		PHALCON_THROW_EXCEPTION_STR(phalcon_mvc_model_exception_ce, "A dependency injector container is required to obtain the services related to the ORM");
@@ -1130,13 +1137,13 @@ PHP_METHOD(Phalcon_Mvc_Model, cloneResultMapHydrate){
 				PHALCON_OBS_NVAR(attribute);
 				phalcon_array_fetch(&attribute, column_map, key, PH_NOISY);
 				if (PHALCON_IS_LONG(hydration_mode, 1)) {
-					phalcon_array_update_zval(&hydrate, attribute, &value, PH_COPY | PH_SEPARATE);
+					phalcon_array_update_zval(&hydrate, attribute, value, PH_COPY | PH_SEPARATE);
 				} else {
 					phalcon_update_property_zval_zval(hydrate, attribute, value TSRMLS_CC);
 				}
 			} else {
 				if (PHALCON_IS_LONG(hydration_mode, 1)) {
-					phalcon_array_update_zval(&hydrate, key, &value, PH_COPY | PH_SEPARATE);
+					phalcon_array_update_zval(&hydrate, key, value, PH_COPY | PH_SEPARATE);
 				} else {
 					phalcon_update_property_zval_zval(hydrate, key, value TSRMLS_CC);
 				}
@@ -1364,8 +1371,8 @@ PHP_METHOD(Phalcon_Mvc_Model, find){
 PHP_METHOD(Phalcon_Mvc_Model, findFirst){
 
 	zval *parameters = NULL, *model_name, *params = NULL, *builder;
-	zval *z_one, *query, *bind_params = NULL, *bind_types = NULL, *cache;
-	zval *unique;
+	zval *query, *bind_params = NULL, *bind_types = NULL, *cache;
+	zval *unique, *index, tmp = zval_used_for_init;
 
 	PHALCON_MM_GROW();
 
@@ -1382,7 +1389,7 @@ PHP_METHOD(Phalcon_Mvc_Model, findFirst){
 		PHALCON_INIT_VAR(params);
 		array_init(params);
 		if (Z_TYPE_P(parameters) != IS_NULL) {
-			phalcon_array_append(&params, parameters, PH_SEPARATE);
+			phalcon_array_append(&params, parameters, 0);
 		}
 	} else {
 		PHALCON_CPY_WRT(params, parameters);
@@ -1398,36 +1405,57 @@ PHP_METHOD(Phalcon_Mvc_Model, findFirst){
 	phalcon_call_method_p1_noret(builder, "from", model_name);
 	
 	/** 
-	 * We only want the first record
-	 */
-	z_one = PHALCON_GLOBAL(z_one);
-	phalcon_call_method_p1_noret(builder, "limit", z_one);
-	
-	PHALCON_INIT_VAR(query);
-	phalcon_call_method(query, builder, "getquery");
-	
-	/** 
 	 * Check for bind parameters
 	 */
-	PHALCON_INIT_VAR(bind_params);
-	
-	PHALCON_INIT_VAR(bind_types);
-	if (phalcon_array_isset_string(params, SS("bind"))) {
-	
-		PHALCON_OBS_NVAR(bind_params);
-		phalcon_array_fetch_string(&bind_params, params, SL("bind"), PH_NOISY);
-		if (phalcon_array_isset_string(params, SS("bindTypes"))) {
-			PHALCON_OBS_NVAR(bind_types);
-			phalcon_array_fetch_string(&bind_types, params, SL("bindTypes"), PH_NOISY);
+	PHALCON_OBS_VAR(bind_params);
+	PHALCON_OBS_VAR(bind_types);
+	if (phalcon_array_isset_string_fetch(&bind_params, params, SS("bind"))) {
+		Z_ADDREF_P(bind_params);
+		SEPARATE_ZVAL(&bind_params);
+		if (Z_TYPE_P(bind_params) != IS_ARRAY) {
+			zval_dtor(bind_params);
+			array_init_size(bind_params, 1);
+		}
+
+		if (phalcon_array_isset_string_fetch(&bind_types, params, SS("bindTypes"))) {
+			Z_ADDREF_P(bind_types);
+			SEPARATE_ZVAL(&bind_types);
+			if (Z_TYPE_P(bind_types) != IS_ARRAY) {
+				zval_dtor(bind_types);
+				array_init_size(bind_types, 1);
+			}
+		}
+		else {
+			MAKE_STD_ZVAL(bind_types);
+			array_init_size(bind_types, 1);
 		}
 	}
-	
+	else {
+		MAKE_STD_ZVAL(bind_params);
+		MAKE_STD_ZVAL(bind_types);
+		array_init_size(bind_params, 1);
+		array_init_size(bind_types, 1);
+	}
+
+	ZVAL_LONG(&tmp, zend_hash_num_elements(Z_ARRVAL_P(bind_params)) + 1);
+	PHALCON_INIT_VAR(index);
+	PHALCON_CONCAT_SV(index, "?", &tmp);
+
+	/**
+	 * We only want the first record
+	 */
+	phalcon_call_method_p1_noret(builder, "limit", index);
+
+	PHALCON_INIT_VAR(query);
+	phalcon_call_method(query, builder, "getquery");
+
+	add_index_long(bind_params, Z_LVAL(tmp), 1);
+	add_index_long(bind_types, Z_LVAL(tmp), 1 /* BIND_PARAM_INT */);
+
 	/** 
 	 * Pass the cache options to the query
 	 */
-	if (phalcon_array_isset_string(params, SS("cache"))) {
-		PHALCON_OBS_VAR(cache);
-		phalcon_array_fetch_string(&cache, params, SL("cache"), PH_NOISY);
+	if (phalcon_array_isset_string_fetch(&cache, params, SS("cache"))) {
 		phalcon_call_method_p1_noret(query, "cache", cache);
 	}
 	
@@ -1441,7 +1469,7 @@ PHP_METHOD(Phalcon_Mvc_Model, findFirst){
 	/** 
 	 * Execute the query passing the bind-params and casting-types
 	 */
-	phalcon_call_method_p2(return_value, query, "execute", bind_params, bind_types);
+	phalcon_return_call_method_p2(query, "execute", bind_params, bind_types);
 	RETURN_MM();
 }
 
@@ -1453,7 +1481,7 @@ PHP_METHOD(Phalcon_Mvc_Model, findFirst){
  */
 PHP_METHOD(Phalcon_Mvc_Model, query){
 
-	zval *dependency_injector = NULL, *model_name, *criteria;
+	zval *dependency_injector = NULL, *model_name;
 
 	PHALCON_MM_GROW();
 
@@ -1466,22 +1494,21 @@ PHP_METHOD(Phalcon_Mvc_Model, query){
 	}
 	
 	PHALCON_INIT_VAR(model_name);
-	phalcon_get_called_class(model_name  TSRMLS_CC);
+	phalcon_get_called_class(model_name TSRMLS_CC);
 	
 	/** 
 	 * Use the global dependency injector if there is no one defined
 	 */
 	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-		PHALCON_INIT_NVAR(dependency_injector);
-		phalcon_call_static(dependency_injector, "phalcon\\di", "getdefault");
+		PHALCON_OBSERVE_OR_NULLIFY_VAR(dependency_injector);
+		PHALCON_CALL_CE_STATIC(&dependency_injector, phalcon_di_ce, "getdefault");
 	}
 	
-	PHALCON_INIT_VAR(criteria);
-	object_init_ex(criteria, phalcon_mvc_model_criteria_ce);
-	phalcon_call_method_p1_noret(criteria, "setdi", dependency_injector);
-	phalcon_call_method_p1_noret(criteria, "setmodelname", model_name);
+	object_init_ex(return_value, phalcon_mvc_model_criteria_ce);
+	phalcon_call_method_p1_noret(return_value, "setdi", dependency_injector);
+	phalcon_call_method_p1_noret(return_value, "setmodelname", model_name);
 	
-	RETURN_CTOR(criteria);
+	PHALCON_MM_RESTORE();
 }
 
 /**
@@ -1893,7 +1920,7 @@ PHP_METHOD(Phalcon_Mvc_Model, count){
 	
 	PHALCON_INIT_VAR(alias);
 	ZVAL_STRING(alias, "rowcount", 1);
-	phalcon_call_self_p3(return_value, this_ptr, "_groupresult", function, alias, parameters);
+	PHALCON_RETURN_CALL_SELF("_groupresult", function, alias, parameters);
 	RETURN_MM();
 }
 
@@ -1932,7 +1959,7 @@ PHP_METHOD(Phalcon_Mvc_Model, sum){
 	
 	PHALCON_INIT_VAR(alias);
 	ZVAL_STRING(alias, "sumatory", 1);
-	phalcon_call_self_p3(return_value, this_ptr, "_groupresult", function, alias, parameters);
+	PHALCON_RETURN_CALL_SELF("_groupresult", function, alias, parameters);
 	RETURN_MM();
 }
 
@@ -1971,7 +1998,7 @@ PHP_METHOD(Phalcon_Mvc_Model, maximum){
 	
 	PHALCON_INIT_VAR(alias);
 	ZVAL_STRING(alias, "maximum", 1);
-	phalcon_call_self_p3(return_value, this_ptr, "_groupresult", function, alias, parameters);
+	PHALCON_RETURN_CALL_SELF("_groupresult", function, alias, parameters);
 	RETURN_MM();
 }
 
@@ -2010,7 +2037,7 @@ PHP_METHOD(Phalcon_Mvc_Model, minimum){
 	
 	PHALCON_INIT_VAR(alias);
 	ZVAL_STRING(alias, "minimum", 1);
-	phalcon_call_self_p3(return_value, this_ptr, "_groupresult", function, alias, parameters);
+	PHALCON_RETURN_CALL_SELF("_groupresult", function, alias, parameters);
 	RETURN_MM();
 }
 
@@ -2049,7 +2076,7 @@ PHP_METHOD(Phalcon_Mvc_Model, average){
 	
 	PHALCON_INIT_VAR(alias);
 	ZVAL_STRING(alias, "average", 1);
-	phalcon_call_self_p3(return_value, this_ptr, "_groupresult", function, alias, parameters);
+	PHALCON_RETURN_CALL_SELF("_groupresult", function, alias, parameters);
 	RETURN_MM();
 }
 
@@ -2061,17 +2088,24 @@ PHP_METHOD(Phalcon_Mvc_Model, average){
  */
 PHP_METHOD(Phalcon_Mvc_Model, fireEvent){
 
-	zval *event_name, *models_manager;
+	zval **event_name, *models_manager;
+	zval *lower;
+	char *tmp;
+
+	phalcon_fetch_params_ex(1, 0, &event_name);
+	PHALCON_ENSURE_IS_STRING(event_name);
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 1, 0, &event_name);
-	
+	PHALCON_INIT_VAR(lower);
+	tmp = zend_str_tolower_dup(Z_STRVAL_PP(event_name), Z_STRLEN_PP(event_name));
+	ZVAL_STRINGL(lower, tmp, Z_STRLEN_PP(event_name), 0);
+
 	/** 
 	 * Check if there is a method with the same name of the event
 	 */
-	if (phalcon_method_exists(this_ptr, event_name TSRMLS_CC) == SUCCESS) {
-		phalcon_call_method_zval_noret(this_ptr, event_name);
+	if (phalcon_method_exists_ex(this_ptr, Z_STRVAL_P(lower), Z_STRLEN_P(lower)+1  TSRMLS_CC) == SUCCESS) {
+		phalcon_call_method_noret(this_ptr, Z_STRVAL_P(lower));
 	}
 	
 	PHALCON_OBS_VAR(models_manager);
@@ -2080,7 +2114,7 @@ PHP_METHOD(Phalcon_Mvc_Model, fireEvent){
 	/** 
 	 * Send a notification to the events manager
 	 */
-	phalcon_call_method_p2(return_value, models_manager, "notifyevent", event_name, this_ptr);
+	phalcon_call_method_p2(return_value, models_manager, "notifyevent", *event_name, this_ptr);
 	RETURN_MM();
 }
 
@@ -2093,19 +2127,25 @@ PHP_METHOD(Phalcon_Mvc_Model, fireEvent){
  */
 PHP_METHOD(Phalcon_Mvc_Model, fireEventCancel){
 
-	zval *event_name, *status = NULL, *models_manager;
+	zval **event_name, *status = NULL, *models_manager;
+	zval *lower;
+	char *tmp;
+
+	phalcon_fetch_params_ex(1, 0, &event_name);
+	PHALCON_ENSURE_IS_STRING(event_name);
 
 	PHALCON_MM_GROW();
 
-	phalcon_fetch_params(1, 1, 0, &event_name);
-	
-	/** 
+	PHALCON_INIT_VAR(lower);
+	tmp = zend_str_tolower_dup(Z_STRVAL_PP(event_name), Z_STRLEN_PP(event_name));
+	ZVAL_STRINGL(lower, tmp, Z_STRLEN_PP(event_name), 0);
+
+	/**
 	 * Check if there is a method with the same name of the event
 	 */
-	if (phalcon_method_exists(this_ptr, event_name TSRMLS_CC) == SUCCESS) {
-	
+	if (phalcon_method_exists_ex(this_ptr, Z_STRVAL_P(lower), Z_STRLEN_P(lower)+1  TSRMLS_CC) == SUCCESS) {
 		PHALCON_INIT_VAR(status);
-		phalcon_call_method_zval(status, this_ptr, event_name);
+		phalcon_call_method(status, this_ptr, Z_STRVAL_P(lower));
 		if (PHALCON_IS_FALSE(status)) {
 			RETURN_MM_FALSE;
 		}
@@ -2118,7 +2158,7 @@ PHP_METHOD(Phalcon_Mvc_Model, fireEventCancel){
 	 * Send a notification to the events manager
 	 */
 	PHALCON_INIT_NVAR(status);
-	phalcon_call_method_p2(status, models_manager, "notifyevent", event_name, this_ptr);
+	phalcon_call_method_p2(status, models_manager, "notifyevent", *event_name, this_ptr);
 	if (PHALCON_IS_FALSE(status)) {
 		RETURN_MM_FALSE;
 	}
@@ -2521,8 +2561,8 @@ PHP_METHOD(Phalcon_Mvc_Model, _checkForeignKeysRestrict){
 	
 					PHALCON_INIT_NVAR(parameters);
 					array_init_size(parameters, 2);
-					phalcon_array_append(&parameters, join_conditions, PH_SEPARATE);
-					phalcon_array_update_string(&parameters, SL("bind"), &bind_params, PH_COPY | PH_SEPARATE);
+					phalcon_array_append(&parameters, join_conditions, 0);
+					phalcon_array_update_string(&parameters, SL("bind"), bind_params, PH_COPY);
 	
 					/** 
 					 * Let's make the checking
@@ -2741,8 +2781,8 @@ PHP_METHOD(Phalcon_Mvc_Model, _checkForeignKeysReverseRestrict){
 	
 					PHALCON_INIT_NVAR(parameters);
 					array_init_size(parameters, 2);
-					phalcon_array_append(&parameters, join_conditions, PH_SEPARATE);
-					phalcon_array_update_string(&parameters, SL("bind"), &bind_params, PH_COPY | PH_SEPARATE);
+					phalcon_array_append(&parameters, join_conditions, 0);
+					phalcon_array_update_string(&parameters, SL("bind"), bind_params, PH_COPY);
 	
 					/** 
 					 * Let's make the checking
@@ -2949,8 +2989,8 @@ PHP_METHOD(Phalcon_Mvc_Model, _checkForeignKeysReverseCascade){
 	
 					PHALCON_INIT_NVAR(parameters);
 					array_init_size(parameters, 2);
-					phalcon_array_append(&parameters, join_conditions, PH_SEPARATE);
-					phalcon_array_update_string(&parameters, SL("bind"), &bind_params, PH_COPY | PH_SEPARATE);
+					phalcon_array_append(&parameters, join_conditions, 0);
+					phalcon_array_update_string(&parameters, SL("bind"), bind_params, PH_COPY);
 	
 					/** 
 					 * Let's make the checking
@@ -3828,9 +3868,9 @@ PHP_METHOD(Phalcon_Mvc_Model, _doLowUpdate){
 	 */
 	PHALCON_INIT_VAR(conditions);
 	array_init_size(conditions, 3);
-	phalcon_array_update_string(&conditions, SL("conditions"), &unique_key, PH_COPY);
-	phalcon_array_update_string(&conditions, SL("bind"), &unique_params, PH_COPY);
-	phalcon_array_update_string(&conditions, SL("bindTypes"), &unique_types, PH_COPY);
+	phalcon_array_update_string(&conditions, ISL(conditions), unique_key, PH_COPY);
+	phalcon_array_update_string(&conditions, SL("bind"), unique_params, PH_COPY);
+	phalcon_array_update_string(&conditions, SL("bindTypes"), unique_types, PH_COPY);
 
 	/** 
 	 * Perform the low level update
@@ -4289,8 +4329,9 @@ PHP_METHOD(Phalcon_Mvc_Model, save){
 	
 				PHALCON_INIT_NVAR(possible_setter);
 				PHALCON_CONCAT_SV(possible_setter, "set", attribute);
-				if (phalcon_method_exists(this_ptr, possible_setter TSRMLS_CC) == SUCCESS) {
-					phalcon_call_method_zval_p1_noret(this_ptr, possible_setter, value);
+				zend_str_tolower(Z_STRVAL_P(possible_setter), Z_STRLEN_P(possible_setter));
+				if (phalcon_method_exists_ex(this_ptr, Z_STRVAL_P(possible_setter), Z_STRLEN_P(possible_setter)+1 TSRMLS_CC) == SUCCESS) {
+					phalcon_call_method_p1_noret(this_ptr, Z_STRVAL_P(possible_setter), value);
 				} else {
 					/** 
 					 * Otherwise we assign the attribute directly
@@ -4579,8 +4620,9 @@ PHP_METHOD(Phalcon_Mvc_Model, create){
 				 */
 				PHALCON_INIT_NVAR(possible_setter);
 				PHALCON_CONCAT_SV(possible_setter, "set", attribute_field);
-				if (phalcon_method_exists(this_ptr, possible_setter TSRMLS_CC) == SUCCESS) {
-					phalcon_call_method_zval_p1_noret(this_ptr, possible_setter, value);
+				zend_str_tolower(Z_STRVAL_P(possible_setter), Z_STRLEN_P(possible_setter));
+				if (phalcon_method_exists_ex(this_ptr, Z_STRVAL_P(possible_setter), Z_STRLEN_P(possible_setter)+1 TSRMLS_CC) == SUCCESS) {
+					phalcon_call_method_p1_noret(this_ptr, Z_STRVAL_P(possible_setter), value);
 				} else {
 					phalcon_update_property_zval_zval(this_ptr, attribute_field, value TSRMLS_CC);
 				}
@@ -4745,8 +4787,9 @@ PHP_METHOD(Phalcon_Mvc_Model, update){
 				 */
 				PHALCON_INIT_NVAR(possible_setter);
 				PHALCON_CONCAT_SV(possible_setter, "set", attribute_field);
-				if (phalcon_method_exists(this_ptr, possible_setter TSRMLS_CC) == SUCCESS) {
-					phalcon_call_method_zval_p1_noret(this_ptr, possible_setter, value);
+				zend_str_tolower(Z_STRVAL_P(possible_setter), Z_STRLEN_P(possible_setter));
+				if (phalcon_method_exists_ex(this_ptr, Z_STRVAL_P(possible_setter), Z_STRLEN_P(possible_setter)+1 TSRMLS_CC) == SUCCESS) {
+					phalcon_call_method_p1_noret(this_ptr, Z_STRVAL_P(possible_setter), value);
 				} else {
 					phalcon_update_property_zval_zval(this_ptr, attribute_field, value TSRMLS_CC);
 				}
@@ -5052,7 +5095,7 @@ PHP_METHOD(Phalcon_Mvc_Model, refresh){
 	zval *dirty_state, *meta_data, *read_connection;
 	zval *schema, *source, *table = NULL, *unique_key = NULL, *exists;
 	zval *unique_params, *unique_types, *attributes;
-	zval *fields, *attribute = NULL, *field_item = NULL, *escaped_table;
+	zval *fields, *escaped_table;
 	zval *select, *dialect, *sql, *fetch_type, *row, *column_map;
 	HashTable *ah0;
 	HashPosition hp0;
@@ -5081,8 +5124,8 @@ PHP_METHOD(Phalcon_Mvc_Model, refresh){
 	if (zend_is_true(schema)) {
 		PHALCON_INIT_VAR(table);
 		array_init_size(table, 2);
-		phalcon_array_append(&table, schema, PH_SEPARATE);
-		phalcon_array_append(&table, source, PH_SEPARATE);
+		phalcon_array_append(&table, schema, 0);
+		phalcon_array_append(&table, source, 0);
 	} else {
 		PHALCON_CPY_WRT(table, source);
 	}
@@ -5127,14 +5170,14 @@ PHP_METHOD(Phalcon_Mvc_Model, refresh){
 	phalcon_is_iterable(attributes, &ah0, &hp0, 0, 0);
 	
 	while (zend_hash_get_current_data_ex(ah0, (void**) &hd, &hp0) == SUCCESS) {
-	
-		PHALCON_GET_HVALUE(attribute);
-	
-		PHALCON_INIT_NVAR(field_item);
+		zval *field_item;
+
+		MAKE_STD_ZVAL(field_item);
 		array_init_size(field_item, 1);
-		phalcon_array_append(&field_item, attribute, PH_SEPARATE);
-		phalcon_array_append(&fields, field_item, PH_SEPARATE);
-	
+		phalcon_array_append(&field_item, *hd, 0);
+
+		phalcon_array_append(&fields, field_item, 0);
+
 		zend_hash_move_forward_ex(ah0, &hp0);
 	}
 	
@@ -5142,10 +5185,10 @@ PHP_METHOD(Phalcon_Mvc_Model, refresh){
 	phalcon_call_method_p1(escaped_table, read_connection, "escapeidentifier", table);
 	
 	PHALCON_INIT_VAR(select);
-	array_init(select);
-	phalcon_array_update_string(&select, SL("columns"), &fields, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&select, SL("tables"), &escaped_table, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&select, SL("where"), &unique_key, PH_COPY | PH_SEPARATE);
+	array_init_size(select, 3);
+	phalcon_array_update_string(&select, ISL(columns), fields, PH_COPY);
+	phalcon_array_update_string(&select, ISL(tables), escaped_table, PH_COPY);
+	phalcon_array_update_string(&select, ISL(where), unique_key, PH_COPY);
 	
 	/** 
 	 * We directly build the SELECT to save resources
@@ -5290,7 +5333,7 @@ PHP_METHOD(Phalcon_Mvc_Model, skipAttributes){
 	
 		PHALCON_GET_HVALUE(attribute);
 	
-		phalcon_array_update_zval(&keys_attributes, attribute, &null_value, PH_COPY | PH_SEPARATE);
+		phalcon_array_update_zval(&keys_attributes, attribute, null_value, PH_COPY);
 	
 		zend_hash_move_forward_ex(ah0, &hp0);
 	}
@@ -5355,7 +5398,7 @@ PHP_METHOD(Phalcon_Mvc_Model, skipAttributesOnCreate){
 	
 		PHALCON_GET_HVALUE(attribute);
 	
-		phalcon_array_update_zval(&keys_attributes, attribute, &null_value, PH_COPY | PH_SEPARATE);
+		phalcon_array_update_zval(&keys_attributes, attribute, null_value, PH_COPY);
 	
 		zend_hash_move_forward_ex(ah0, &hp0);
 	}
@@ -5418,7 +5461,7 @@ PHP_METHOD(Phalcon_Mvc_Model, skipAttributesOnUpdate){
 	
 		PHALCON_GET_HVALUE(attribute);
 	
-		phalcon_array_update_zval(&keys_attributes, attribute, &null_value, PH_COPY);
+		phalcon_array_update_zval(&keys_attributes, attribute, null_value, PH_COPY);
 	
 		zend_hash_move_forward_ex(ah0, &hp0);
 	}
@@ -5738,7 +5781,7 @@ PHP_METHOD(Phalcon_Mvc_Model, setSnapshotData){
 	
 			PHALCON_OBS_NVAR(attribute);
 			phalcon_array_fetch(&attribute, column_map, key, PH_NOISY);
-			phalcon_array_update_zval(&snapshot, attribute, &value, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_zval(&snapshot, attribute, value, PH_COPY);
 	
 			zend_hash_move_forward_ex(ah0, &hp0);
 		}
@@ -6302,11 +6345,12 @@ PHP_METHOD(Phalcon_Mvc_Model, __call){
  */
 PHP_METHOD(Phalcon_Mvc_Model, __callStatic){
 
-	zval *method, *arguments = NULL, *extra_method = NULL, *type = NULL;
+	zval *method, *arguments = NULL, *extra_method = NULL;
 	zval *model_name, *exception_message = NULL, *value;
 	zval *model, *meta_data, *attributes = NULL, *field = NULL, *extra_method_first;
 	zval *conditions, *bind_params, *parameters;
 	zend_class_entry *ce0;
+	const char *type;
 
 	PHALCON_MM_GROW();
 
@@ -6322,9 +6366,7 @@ PHP_METHOD(Phalcon_Mvc_Model, __callStatic){
 	 * Check if the method starts with 'findFirst'
 	 */
 	if (phalcon_start_with_str(method, SL("findFirstBy"))) {
-		PHALCON_INIT_VAR(type);
-		ZVAL_STRING(type, "findFirst", 1);
-	
+		type = "findfirst";
 		phalcon_substr(extra_method, method, 11, 0);
 	}
 	
@@ -6333,10 +6375,7 @@ PHP_METHOD(Phalcon_Mvc_Model, __callStatic){
 	 */
 	if (Z_TYPE_P(extra_method) == IS_NULL) {
 		if (phalcon_start_with_str(method, SL("findBy"))) {
-			PHALCON_INIT_NVAR(type);
-			ZVAL_STRING(type, "find", 1);
-	
-			PHALCON_INIT_NVAR(extra_method);
+			type = "find";
 			phalcon_substr(extra_method, method, 6, 0);
 		}
 	}
@@ -6346,10 +6385,7 @@ PHP_METHOD(Phalcon_Mvc_Model, __callStatic){
 	 */
 	if (Z_TYPE_P(extra_method) == IS_NULL) {
 		if (phalcon_start_with_str(method, SL("countBy"))) {
-			PHALCON_INIT_NVAR(type);
-			ZVAL_STRING(type, "count", 1);
-	
-			PHALCON_INIT_NVAR(extra_method);
+			type = "count";
 			phalcon_substr(extra_method, method, 7, 0);
 		}
 	}
@@ -6438,17 +6474,17 @@ PHP_METHOD(Phalcon_Mvc_Model, __callStatic){
 	
 	PHALCON_INIT_VAR(bind_params);
 	array_init_size(bind_params, 1);
-	phalcon_array_append(&bind_params, value, PH_SEPARATE);
+	phalcon_array_append(&bind_params, value, 0);
 	
 	PHALCON_INIT_VAR(parameters);
 	array_init_size(parameters, 2);
-	phalcon_array_update_string(&parameters, SL("conditions"), &conditions, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&parameters, SL("bind"), &bind_params, PH_COPY | PH_SEPARATE);
+	phalcon_array_update_string(&parameters, ISL(conditions), conditions, PH_COPY);
+	phalcon_array_update_string(&parameters, SL("bind"), bind_params, PH_COPY);
 	
 	/** 
 	 * Execute the query
 	 */
-	phalcon_call_zval_static_p1(return_value, model_name, type, parameters);
+	PHALCON_RETURN_CALL_CE_STATIC(ce0, type, parameters);
 	RETURN_MM();
 }
 
@@ -6460,7 +6496,7 @@ PHP_METHOD(Phalcon_Mvc_Model, __callStatic){
  */
 PHP_METHOD(Phalcon_Mvc_Model, __set){
 
-	zval *property, *value, *is_model, *lower_property = NULL;
+	zval *property, *value, *lower_property = NULL;
 
 	PHALCON_MM_GROW();
 
@@ -6471,9 +6507,7 @@ PHP_METHOD(Phalcon_Mvc_Model, __set){
 	 */
 	if (Z_TYPE_P(value) == IS_OBJECT) {
 	
-		PHALCON_INIT_VAR(is_model);
-		phalcon_instance_of(is_model, value, phalcon_mvc_modelinterface_ce TSRMLS_CC);
-		if (zend_is_true(is_model)) {
+		if (instanceof_function_ex(Z_OBJCE_P(value), phalcon_mvc_modelinterface_ce, 1 TSRMLS_CC)) {
 			PHALCON_INIT_VAR(lower_property);
 			phalcon_fast_strtolower(lower_property, property);
 			phalcon_update_property_zval_zval(this_ptr, lower_property, value TSRMLS_CC);
@@ -6512,7 +6546,6 @@ PHP_METHOD(Phalcon_Mvc_Model, __get){
 
 	zval *property, *model_name, *manager, *lower_property;
 	zval *relation, *call_args, *call_object, *result;
-	zval *is_simple_model;
 
 	PHALCON_MM_GROW();
 
@@ -6536,14 +6569,14 @@ PHP_METHOD(Phalcon_Mvc_Model, __get){
 	
 		PHALCON_INIT_VAR(call_args);
 		array_init_size(call_args, 4);
-		phalcon_array_append(&call_args, relation, PH_SEPARATE);
+		phalcon_array_append(&call_args, relation, 0);
 		add_next_index_null(call_args);
-		phalcon_array_append(&call_args, this_ptr, PH_SEPARATE);
+		phalcon_array_append(&call_args, this_ptr, 0);
 		add_next_index_null(call_args);
 	
 		PHALCON_INIT_VAR(call_object);
 		array_init_size(call_object, 2);
-		phalcon_array_append(&call_object, manager, PH_SEPARATE);
+		phalcon_array_append(&call_object, manager, 0);
 		add_next_index_stringl(call_object, SL("getRelationRecords"), 1);
 	
 		/** 
@@ -6565,9 +6598,7 @@ PHP_METHOD(Phalcon_Mvc_Model, __get){
 			/** 
 			 * For belongs-to relations we store the object in the related bag
 			 */
-			PHALCON_INIT_VAR(is_simple_model);
-			phalcon_instance_of(is_simple_model, result, phalcon_mvc_modelinterface_ce TSRMLS_CC);
-			if (PHALCON_IS_TRUE(is_simple_model)) {
+			if (instanceof_function_ex(Z_OBJCE_P(result), phalcon_mvc_modelinterface_ce, 1 TSRMLS_CC)) {
 				phalcon_update_property_array(this_ptr, SL("_related"), lower_property, result TSRMLS_CC);
 			}
 		}
@@ -6578,6 +6609,7 @@ PHP_METHOD(Phalcon_Mvc_Model, __get){
 	/** 
 	 * A notice is shown if the property is not defined and it isn't a relationship
 	 */
+	/* TODO see if segfault is possible */
 	zend_error(E_NOTICE, "Access to undefined property %s::%s", Z_STRVAL_P(model_name), Z_STRVAL_P(property));
 	RETURN_MM_NULL();
 }
@@ -6651,9 +6683,9 @@ PHP_METHOD(Phalcon_Mvc_Model, serialize){
 		if (phalcon_isset_property_zval(this_ptr, attribute TSRMLS_CC)) {
 			PHALCON_OBS_NVAR(value);
 			phalcon_read_property_zval(&value, this_ptr, attribute, PH_NOISY_CC);
-			phalcon_array_update_zval(&data, attribute, &value, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_zval(&data, attribute, value, PH_COPY);
 		} else {
-			phalcon_array_update_zval(&data, attribute, &null_value, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_zval(&data, attribute, null_value, PH_COPY);
 		}
 	
 		zend_hash_move_forward_ex(ah0, &hp0);
@@ -6692,8 +6724,8 @@ PHP_METHOD(Phalcon_Mvc_Model, unserialize){
 			/** 
 			 * Obtain the default DI
 			 */
-			PHALCON_INIT_VAR(dependency_injector);
-			phalcon_call_static(dependency_injector, "phalcon\\di", "getdefault");
+			PHALCON_OBS_VAR(dependency_injector);
+			PHALCON_CALL_CE_STATIC(&dependency_injector, phalcon_di_ce, "getdefault");
 	
 			if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
 				PHALCON_THROW_EXCEPTION_STR(phalcon_mvc_model_exception_ce, "A dependency injector container is required to obtain the services related to the ORM");
@@ -6766,7 +6798,7 @@ PHP_METHOD(Phalcon_Mvc_Model, dump){
 
 	PHALCON_MM_GROW();
 
-	phalcon_call_func_p1(return_value, "get_object_vars", this_ptr);
+	PHALCON_RETURN_CALL_FUNCTION("get_object_vars", this_ptr);
 	RETURN_MM();
 }
 
@@ -6845,9 +6877,9 @@ PHP_METHOD(Phalcon_Mvc_Model, toArray){
 		if (phalcon_isset_property_zval(this_ptr, attribute_field TSRMLS_CC)) {
 			PHALCON_OBS_NVAR(value);
 			phalcon_read_property_zval(&value, this_ptr, attribute_field, PH_NOISY_CC);
-			phalcon_array_update_zval(&data, attribute_field, &value, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_zval(&data, attribute_field, value, PH_COPY);
 		} else {
-			phalcon_array_update_zval(&data, attribute_field, &null_value, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_zval(&data, attribute_field, null_value, PH_COPY);
 		}
 	
 		zend_hash_move_forward_ex(ah0, &hp0);

@@ -48,7 +48,7 @@ static zval* phalcon_translate_adapter_nativearray_read_dimension(zval *object, 
 {
 	zval *translate, *translation;
 
-	if (Z_OBJCE_P(object)->type != ZEND_INTERNAL_CLASS) {
+	if (!is_phalcon_class(Z_OBJCE_P(object))) {
 		return zend_get_std_object_handlers()->read_dimension(object, offset, type TSRMLS_CC);
 	}
 
@@ -64,7 +64,7 @@ static int phalcon_translate_adapter_nativearray_has_dimension(zval *object, zva
 {
 	zval *translate, *translation;
 
-	if (Z_OBJCE_P(object)->type != ZEND_INTERNAL_CLASS) {
+	if (!is_phalcon_class(Z_OBJCE_P(object))) {
 		return zend_get_std_object_handlers()->has_dimension(object, offset, check_empty TSRMLS_CC);
 	}
 
@@ -80,8 +80,12 @@ PHP_METHOD(Phalcon_Translate_Adapter_NativeArray, __construct);
 PHP_METHOD(Phalcon_Translate_Adapter_NativeArray, query);
 PHP_METHOD(Phalcon_Translate_Adapter_NativeArray, exists);
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_translate_adapter_nativearray___construct, 0, 0, 1)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
+
 static const zend_function_entry phalcon_translate_adapter_nativearray_method_entry[] = {
-	PHP_ME(Phalcon_Translate_Adapter_NativeArray, __construct, arginfo_phalcon_translate_adapterinterface___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(Phalcon_Translate_Adapter_NativeArray, __construct, arginfo_phalcon_translate_adapter_nativearray___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(Phalcon_Translate_Adapter_NativeArray, query, arginfo_phalcon_translate_adapterinterface_query, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Translate_Adapter_NativeArray, exists, arginfo_phalcon_translate_adapterinterface_exists, ZEND_ACC_PUBLIC)
 	PHP_FE_END
