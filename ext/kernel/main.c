@@ -40,9 +40,6 @@ void php_phalcon_init_globals(zend_phalcon_globals *phalcon_globals TSRMLS_DC) {
 	/* Virtual Symbol Tables */
 	phalcon_globals->active_symbol_table = NULL;
 
-	/* Cache options */
-	phalcon_globals->function_cache = NULL;
-
 	/* Recursive Lock */
 	phalcon_globals->recursive_lock = 0;
 
@@ -60,7 +57,6 @@ void php_phalcon_init_globals(zend_phalcon_globals *phalcon_globals TSRMLS_DC) {
 
 	/* DB options */
 	phalcon_globals->db.escape_identifiers = 1;
-
 }
 
 /**
@@ -79,56 +75,33 @@ zend_class_entry *phalcon_register_internal_interface_ex(zend_class_entry *orig_
 }
 
 /**
- * Initilializes super global variables if doesn't
- */
-int phalcon_init_global(char *global, unsigned int global_length TSRMLS_DC) {
-
-	#if PHP_VERSION_ID < 50400
-	zend_bool jit_initialization = (PG(auto_globals_jit) && !PG(register_globals) && !PG(register_long_arrays));
-	if (jit_initialization) {
-		return zend_is_auto_global(global, global_length - 1 TSRMLS_CC);
-	}
-	#else
-	if (PG(auto_globals_jit)) {
-		return zend_is_auto_global(global, global_length - 1 TSRMLS_CC);
-	}
-	#endif
-
-	return SUCCESS;
-}
-
-/**
  * Gets the global zval into PG macro
  */
-int phalcon_get_global(zval **arr, const char *global, unsigned int global_length TSRMLS_DC) {
-
-	zval **gv;
+zval* phalcon_get_global(const char *global, unsigned int global_length TSRMLS_DC) {
 
 	zend_bool jit_initialization = PG(auto_globals_jit);
 	if (jit_initialization) {
-		zend_is_auto_global(global, global_length - 1 TSRMLS_CC);
-	}
-
-	if (&EG(symbol_table)) {
-		if (zend_hash_find(&EG(symbol_table), global, global_length, (void **) &gv) == SUCCESS) {
-			if (Z_TYPE_PP(gv) == IS_ARRAY) {
-				*arr = *gv;
-				if (!*arr) {
-					PHALCON_INIT_VAR(*arr);
-					array_init(*arr);
-				}
-			} else {
-				PHALCON_INIT_VAR(*arr);
-				array_init(*arr);
-			}
-			return SUCCESS;
+#if defined(__GNUC__) && PHP_VERSION_ID >= 50400
+		if (__builtin_constant_p(global) && __builtin_constant_p(global_length)) {
+			zend_is_auto_global_quick(global, global_length - 1, zend_inline_hash_func(global, global_length) TSRMLS_CC);
+		}
+		else
+#endif
+		{
+			zend_is_auto_global(global, global_length - 1 TSRMLS_CC);
 		}
 	}
 
-	PHALCON_INIT_VAR(*arr);
-	array_init(*arr);
+	if (&EG(symbol_table)) {
+		zval **gv;
+		if (zend_hash_find(&EG(symbol_table), global, global_length, (void **) &gv) == SUCCESS) {
+			if (gv && *gv && Z_TYPE_PP(gv) == IS_ARRAY) {
+				return *gv;
+			}
+		}
+	}
 
-	return SUCCESS;
+	return PHALCON_GLOBAL(z_null);
 }
 
 /**
@@ -265,38 +238,11 @@ int phalcon_fast_count_ev(zval *value TSRMLS_DC) {
 }
 
 /**
- * Check if a function exists
- */
-int phalcon_function_exists(const zval *function_name TSRMLS_DC) {
-
-	return phalcon_function_quick_exists_ex(
-		Z_STRVAL_P(function_name),
-		Z_STRLEN_P(function_name) + 1,
-		zend_inline_hash_func(Z_STRVAL_P(function_name), Z_STRLEN_P(function_name) + 1) TSRMLS_CC
-	);
-}
-
-/**
- * Check if a function exists using explicit char param
- *
- * @param function_name
- * @param function_len strlen(function_name)+1
- */
-int phalcon_function_exists_ex(const char *function_name, unsigned int function_len TSRMLS_DC) {
-
-	return phalcon_function_quick_exists_ex(function_name, function_len, zend_inline_hash_func(function_name, function_len) TSRMLS_CC);
-}
-
-/**
  * Check if a function exists using explicit char param (using precomputed hash key)
  */
 int phalcon_function_quick_exists_ex(const char *method_name, unsigned int method_len, unsigned long key TSRMLS_DC) {
 
-	if (zend_hash_quick_exists(CG(function_table), method_name, method_len, key)) {
-		return SUCCESS;
-	}
-
-	return FAILURE;
+	return (zend_hash_quick_exists(CG(function_table), method_name, method_len, key)) ? SUCCESS : FAILURE;
 }
 
 /**
@@ -339,13 +285,6 @@ int phalcon_is_iterable_ex(zval *arr, HashTable **arr_hash, HashPosition *hash_p
 	}
 
 	return 1;
-}
-
-void phalcon_safe_zval_ptr_dtor(zval *pzval)
-{
-	if (pzval) {
-		zval_ptr_dtor(&pzval);
-	}
 }
 
 /**

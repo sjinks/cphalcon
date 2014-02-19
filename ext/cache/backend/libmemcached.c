@@ -154,14 +154,14 @@ PHP_METHOD(Phalcon_Cache_Backend_Libmemcached, __construct){
 
 		phalcon_array_append(&servers, server, 0);
 
-		phalcon_array_update_string(&options, SL("servers"), &servers, PH_COPY);
+		phalcon_array_update_string(&options, SL("servers"), servers, PH_COPY);
 	}
 
 	if (!phalcon_array_isset_string(options, SS("statsKey"))) {
 		phalcon_array_update_string_string(&options, SL("statsKey"), SL("_PHCM"), 0);
 	}
 
-	phalcon_call_parent_p2_noret(this_ptr, phalcon_cache_backend_libmemcached_ce, "__construct", frontend, options);
+	PHALCON_CALL_PARENT_NORET(phalcon_cache_backend_libmemcached_ce, this_ptr, "__construct", frontend, options);
 
 	PHALCON_MM_RESTORE();
 }
@@ -371,7 +371,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Libmemcached, save){
 	}
 
 	if (!phalcon_array_isset(keys, last_key)) {
-		phalcon_array_update_zval(&keys, last_key, &ttl, PH_COPY);
+		phalcon_array_update_zval(&keys, last_key, ttl, PH_COPY);
 		phalcon_call_method_p2_noret(memcache, "set", special_key, keys);
 	}
 

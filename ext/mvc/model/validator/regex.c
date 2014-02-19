@@ -31,6 +31,8 @@
 #include "kernel/operators.h"
 #include "kernel/concat.h"
 
+#include "interned-strings.h"
+
 /**
  * Phalcon\Mvc\Model\Validator\Regex
  *
@@ -135,7 +137,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_Regex, validate){
 	 * Check if the value matches using preg_match
 	 */
 	PHALCON_INIT_VAR(match_pattern);
-	phalcon_preg_match(match_pattern, NULL, pattern, value, matches TSRMLS_CC);
+	RETURN_MM_ON_FAILURE(phalcon_preg_match(match_pattern, pattern, value, matches TSRMLS_CC));
 	
 	if (zend_is_true(match_pattern)) {
 		PHALCON_OBS_VAR(match_zero);
@@ -153,7 +155,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_Regex, validate){
 		 * Check if the developer has defined a custom message
 		 */
 		PHALCON_INIT_NVAR(option);
-		ZVAL_STRING(option, "message", 1);
+		PHALCON_ZVAL_MAYBE_INTERNED_STRING(option, phalcon_interned_message);
 	
 		PHALCON_INIT_VAR(message);
 		phalcon_call_method_p1(message, this_ptr, "getoption", option);
@@ -169,7 +171,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_Regex, validate){
 		 * Is code set
 		 */
 		PHALCON_INIT_NVAR(option);
-		ZVAL_STRING(option, "code", 1);
+		PHALCON_ZVAL_MAYBE_INTERNED_STRING(option, phalcon_interned_code);
 
 		PHALCON_INIT_VAR(is_set_code);
 		phalcon_call_method_p1(is_set_code, this_ptr, "issetoption", option);

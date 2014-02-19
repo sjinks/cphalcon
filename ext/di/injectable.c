@@ -17,13 +17,13 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
-
-#include "di/exception.h"
 #include "di/injectable.h"
+#include "di/exception.h"
 #include "di/injectionawareinterface.h"
-#include "events/eventsawareinterface.h"
 #include "diinterface.h"
+#include "di.h"
+#include "events/eventsawareinterface.h"
+#include "events/managerinterface.h"
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -33,6 +33,9 @@
 #include "kernel/concat.h"
 #include "kernel/array.h"
 #include "kernel/operators.h"
+
+#include "internal/arginfo.h"
+#include "interned-strings.h"
 
 /**
  * Phalcon\DI\Injectable
@@ -53,7 +56,7 @@ static const zend_function_entry phalcon_di_injectable_method_entry[] = {
 	PHP_ME(Phalcon_DI_Injectable, getDI, arginfo_phalcon_di_injectionawareinterface_getdi, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Injectable, setEventsManager, arginfo_phalcon_events_eventsawareinterface_seteventsmanager, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_DI_Injectable, getEventsManager, arginfo_phalcon_events_eventsawareinterface_geteventsmanager, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_DI_Injectable, __get, arginfo_phalcon_di_injectable___get, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_DI_Injectable, __get, arginfo___get, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 
@@ -77,7 +80,7 @@ PHALCON_INIT_CLASS(Phalcon_DI_Injectable){
  * Sets the dependency injector
  *
  * @param Phalcon\DiInterface $dependencyInjector
- * @throw Phalcon\Di\Exception if !($dependencyInjector instanceof Phalcon\DiInterface)
+ * @throw Phalcon\Di\Exception
  */
 PHP_METHOD(Phalcon_DI_Injectable, setDI){
 
@@ -85,7 +88,7 @@ PHP_METHOD(Phalcon_DI_Injectable, setDI){
 
 	phalcon_fetch_params_ex(1, 0, &dependency_injector);
 	
-	PHALCON_VERIFY_INTERFACE_EX(*dependency_injector, phalcon_diinterface_ce, phalcon_di_exception_ce, 0);
+	PHALCON_VERIFY_INTERFACE_OR_NULL_EX(*dependency_injector, phalcon_diinterface_ce, phalcon_di_exception_ce, 0);
 	phalcon_update_property_this(this_ptr, SL("_dependencyInjector"), *dependency_injector TSRMLS_CC);
 }
 
@@ -101,7 +104,7 @@ PHP_METHOD(Phalcon_DI_Injectable, getDI){
 	dependency_injector = phalcon_fetch_nproperty_this(this_ptr, SL("_dependencyInjector"), PH_NOISY_CC);
 	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
 		PHALCON_MM_GROW();
-		phalcon_return_call_static_p0("phalcon\\di", "getdefault");
+		PHALCON_RETURN_CALL_CE_STATIC(phalcon_di_ce, "getdefault");
 		RETURN_MM();
 	}
 	
@@ -113,14 +116,15 @@ PHP_METHOD(Phalcon_DI_Injectable, getDI){
  *
  * @param Phalcon\Events\ManagerInterface $eventsManager
  */
-PHP_METHOD(Phalcon_DI_Injectable, setEventsManager){
-
+PHP_METHOD(Phalcon_DI_Injectable, setEventsManager)
+{
 	zval *events_manager;
 
 	phalcon_fetch_params(0, 1, 0, &events_manager);
+	PHALCON_VERIFY_INTERFACE_OR_NULL_EX(events_manager, phalcon_events_managerinterface_ce, phalcon_di_exception_ce, 0);
 	
 	phalcon_update_property_this(this_ptr, SL("_eventsManager"), events_manager TSRMLS_CC);
-	
+
 }
 
 /**
@@ -141,19 +145,20 @@ PHP_METHOD(Phalcon_DI_Injectable, getEventsManager){
  */
 PHP_METHOD(Phalcon_DI_Injectable, __get){
 
-	zval *property_name, *dependency_injector = NULL;
-	zval *has_service, *service = NULL, *class_name, *arguments;
+	zval **property_name, *dependency_injector = NULL;
+	zval *has_service, *service = NULL, *class_name, *arguments, *result = NULL;
+
+	phalcon_fetch_params_ex(1, 0, &property_name);
+	PHALCON_ENSURE_IS_STRING(property_name);
 
 	PHALCON_MM_GROW();
-
-	phalcon_fetch_params(1, 1, 0, &property_name);
 
 	PHALCON_OBS_VAR(dependency_injector);
 	phalcon_read_property_this(&dependency_injector, this_ptr, SL("_dependencyInjector"), PH_NOISY_CC);
 	if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
 
-		PHALCON_INIT_NVAR(dependency_injector);
-		phalcon_call_static(dependency_injector, "phalcon\\di", "getdefault");
+		PHALCON_OBSERVE_OR_NULLIFY_VAR(dependency_injector);
+		PHALCON_CALL_CE_STATIC(&dependency_injector, phalcon_di_ce, "getdefault");
 
 		if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
 			PHALCON_THROW_EXCEPTION_STR(phalcon_di_exception_ce, "A dependency injection object is required to access the application services");
@@ -165,40 +170,46 @@ PHP_METHOD(Phalcon_DI_Injectable, __get){
 	 * Fallback to the PHP userland if the cache is not available
 	 */
 	PHALCON_INIT_VAR(has_service);
-	phalcon_call_method_p1(has_service, dependency_injector, "has", property_name);
+	phalcon_call_method_p1(has_service, dependency_injector, "has", *property_name);
 	if (zend_is_true(has_service)) {
-		phalcon_return_call_method_p1(dependency_injector, "getshared", property_name);
-		phalcon_update_property_zval_zval(this_ptr, property_name, (return_value_ptr ? *return_value_ptr : return_value) TSRMLS_CC);
+		phalcon_call_method_p1_ex(result, &result, dependency_injector, "getshared", *property_name);
+		phalcon_update_property_zval_zval(this_ptr, *property_name, result TSRMLS_CC);
+		RETVAL_ZVAL(result, 1, 1);
 		RETURN_MM();
 	}
 
-	if (PHALCON_IS_STRING(property_name, "di")) {
-		phalcon_update_property_this(this_ptr, SL("di"), dependency_injector TSRMLS_CC);
+	assert(Z_TYPE_PP(property_name) == IS_STRING);
+
+	if (Z_STRLEN_PP(property_name) == sizeof("di")-1 && !memcmp(Z_STRVAL_PP(property_name), "di", sizeof("di")-1)) {
+		zend_update_property(phalcon_di_injectable_ce, getThis(), SL("di"), dependency_injector TSRMLS_CC);
 		RETURN_CCTOR(dependency_injector);
 	}
 
 	/**
 	 * Accessing the persistent property will create a session bag in any class
 	 */
-	if (PHALCON_IS_STRING(property_name, "persistent")) {
-		PHALCON_INIT_VAR(class_name);
-		phalcon_get_class(class_name, this_ptr, 0 TSRMLS_CC);
+	if (Z_STRLEN_PP(property_name) == sizeof("persistent")-1 && !memcmp(Z_STRVAL_PP(property_name), "persistent", sizeof("persistent")-1)) {
+		const char *cn = Z_OBJCE_P(getThis())->name;
+
+		MAKE_STD_ZVAL(class_name);
+		PHALCON_ZVAL_MAYBE_INTERNED_STRING(class_name, cn);
 
 		PHALCON_INIT_VAR(arguments);
 		array_init_size(arguments, 1);
-		phalcon_array_append(&arguments, class_name, 0);
+		add_next_index_zval(arguments, class_name);
 
 		PHALCON_INIT_NVAR(service);
 		ZVAL_STRING(service, "sessionBag", 1);
 
-		phalcon_return_call_method_p2(dependency_injector, "get", service, arguments);
-		zend_update_property(phalcon_di_injectable_ce, getThis(), SL("persistent"), (return_value_ptr ? *return_value_ptr : return_value) TSRMLS_CC);
+		phalcon_call_method_p2_ex(result, &result, dependency_injector, "get", service, arguments);
+		zend_update_property(phalcon_di_injectable_ce, getThis(), SL("persistent"), result TSRMLS_CC);
+		RETVAL_ZVAL(result, 1, 1);
 		RETURN_MM();
 	}
 
 	/**
 	 * A notice is shown if the property is not defined and isn't a valid service
 	 */
-	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Access to undefined property %s", Z_STRVAL_P(property_name));
+	php_error_docref(NULL TSRMLS_CC, E_WARNING, "Access to undefined property %s::%s", Z_OBJCE_P(getThis())->name, Z_STRVAL_PP(property_name));
 	RETURN_MM_NULL();
 }

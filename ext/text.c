@@ -133,7 +133,7 @@ PHP_METHOD(Phalcon_Text, camelize){
  * Uncamelize strings which are camelized
  *
  *<code>
- *	echo Phalcon\Text::camelize('CocoBongo'); //coco_bongo
+ *	echo Phalcon\Text::uncamelize('CocoBongo'); //coco_bongo
  *</code>
  *
  * @param string $str
@@ -306,7 +306,7 @@ PHP_METHOD(Phalcon_Text, lower){
 	 */
 	if (phalcon_function_exists_ex(SS("mb_strtolower") TSRMLS_CC) == SUCCESS) {
 		PHALCON_MM_GROW();
-		phalcon_call_func_p1(return_value, "mb_strtolower", str);
+		PHALCON_RETURN_CALL_FUNCTION("mb_strtolower", str);
 		RETURN_MM();
 	}
 
@@ -331,7 +331,7 @@ PHP_METHOD(Phalcon_Text, upper){
 	 */
 	if (phalcon_function_exists_ex(SS("mb_strtoupper") TSRMLS_CC) == SUCCESS) {
 		PHALCON_MM_GROW();
-		phalcon_call_func_p1(return_value, "mb_strtoupper", str);
+		PHALCON_RETURN_CALL_FUNCTION("mb_strtoupper", str);
 		RETURN_MM();
 	}
 

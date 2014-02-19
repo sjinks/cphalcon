@@ -17,11 +17,10 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
-
 #include "translate/adapter.h"
 #include "translate/adapterinterface.h"
 #include "translate/exception.h"
+#include "internal/arginfo.h"
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -35,6 +34,7 @@
  */
 zend_class_entry *phalcon_translate_adapter_ce;
 
+PHP_METHOD(Phalcon_Translate_Adapter, __construct);
 PHP_METHOD(Phalcon_Translate_Adapter, _);
 PHP_METHOD(Phalcon_Translate_Adapter, offsetSet);
 PHP_METHOD(Phalcon_Translate_Adapter, offsetExists);
@@ -46,29 +46,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_translate_adapter__, 0, 0, 1)
 	ZEND_ARG_INFO(0, placeholders)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_translate_adapter_offsetset, 0, 0, 2)
-	ZEND_ARG_INFO(0, offset)
-	ZEND_ARG_INFO(0, value)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_translate_adapter_offsetexists, 0, 0, 1)
-	ZEND_ARG_INFO(0, translateKey)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_translate_adapter_offsetunset, 0, 0, 1)
-	ZEND_ARG_INFO(0, offset)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_translate_adapter_offsetget, 0, 0, 1)
-	ZEND_ARG_INFO(0, translateKey)
-ZEND_END_ARG_INFO()
-
 static const zend_function_entry phalcon_translate_adapter_method_entry[] = {
+	PHP_ME(Phalcon_Translate_Adapter, __construct, arginfo_empty, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
 	PHP_ME(Phalcon_Translate_Adapter, _, arginfo_phalcon_translate_adapter__, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Translate_Adapter, offsetSet, arginfo_phalcon_translate_adapter_offsetset, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Translate_Adapter, offsetExists, arginfo_phalcon_translate_adapter_offsetexists, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Translate_Adapter, offsetUnset, arginfo_phalcon_translate_adapter_offsetunset, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Translate_Adapter, offsetGet, arginfo_phalcon_translate_adapter_offsetget, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Translate_Adapter, offsetSet, arginfo_arrayaccess_offsetset, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Translate_Adapter, offsetExists, arginfo_arrayaccess_offsetexists, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Translate_Adapter, offsetUnset, arginfo_arrayaccess_offsetunset, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Translate_Adapter, offsetGet, arginfo_arrayaccess_offsetget, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 
@@ -77,18 +61,19 @@ PHALCON_STATIC zend_object_handlers phalcon_translate_adapter_object_handlers;
 static zval* phalcon_translate_adapter_read_dimension(zval *object, zval *offset, int type TSRMLS_DC)
 {
 	zval *ret = NULL;
+	int status;
 
-	if (Z_OBJCE_P(object)->type != ZEND_INTERNAL_CLASS) {
+	if (!is_phalcon_class(Z_OBJCE_P(object))) {
 		return zend_get_std_object_handlers()->read_dimension(object, offset, type TSRMLS_CC);
 	}
 
-	phalcon_call_method_params(ret, &ret, object, SL("query"), zend_inline_hash_func(SS("query")) TSRMLS_CC, 2, offset, PHALCON_GLOBAL(z_null));
-	return UNEXPECTED(EG(exception) != NULL) ? NULL : ret;
+	status = phalcon_call_method_params(ret, &ret, object, SL("query"), zend_inline_hash_func(SS("query")) TSRMLS_CC, 2, offset, PHALCON_GLOBAL(z_null));
+	return UNEXPECTED(status == FAILURE) ? NULL : ret;
 }
 
 static void phalcon_translate_adapter_write_dimension(zval *object, zval *offset, zval *value TSRMLS_DC)
 {
-	if (Z_OBJCE_P(object)->type != ZEND_INTERNAL_CLASS) {
+	if (!is_phalcon_class(Z_OBJCE_P(object))) {
 		zend_get_std_object_handlers()->write_dimension(object, offset, value TSRMLS_CC);
 		return;
 	}
@@ -101,12 +86,11 @@ static int phalcon_translate_adapter_has_dimension(zval *object, zval *offset, i
 	zval *exists = NULL;
 	int retval;
 
-	if (Z_OBJCE_P(object)->type != ZEND_INTERNAL_CLASS) {
+	if (!is_phalcon_class(Z_OBJCE_P(object))) {
 		return zend_get_std_object_handlers()->has_dimension(object, offset, check_empty TSRMLS_CC);
 	}
 
-	phalcon_call_method_params(exists, &exists, object, SL("exists"), zend_inline_hash_func(SS("exists")) TSRMLS_CC, 1, offset);
-	if (UNEXPECTED(EG(exception) != NULL)) {
+	if (FAILURE == phalcon_call_method_params(exists, &exists, object, SL("exists"), zend_inline_hash_func(SS("exists")) TSRMLS_CC, 1, offset)) {
 		return 0;
 	}
 
@@ -117,7 +101,7 @@ static int phalcon_translate_adapter_has_dimension(zval *object, zval *offset, i
 
 static void phalcon_translate_adapter_unset_dimension(zval *object, zval *offset TSRMLS_DC)
 {
-	if (Z_OBJCE_P(object)->type != ZEND_INTERNAL_CLASS) {
+	if (!is_phalcon_class(Z_OBJCE_P(object))) {
 		zend_get_std_object_handlers()->unset_dimension(object, offset TSRMLS_CC);
 		return;
 	}
@@ -168,9 +152,10 @@ PHP_METHOD(Phalcon_Translate_Adapter, _){
 		placeholders = PHALCON_GLOBAL(z_null);
 	}
 
-	phalcon_call_method_params(return_value, return_value_ptr, this_ptr, SL("query"), zend_inline_hash_func(SS("query")) TSRMLS_CC, 2, translate_key, placeholders);
-	if (return_value_ptr && EG(exception)) {
-		ALLOC_INIT_ZVAL(*return_value_ptr);
+	if (FAILURE == phalcon_call_method_params(return_value, return_value_ptr, this_ptr, SL("query"), zend_inline_hash_func(SS("query")) TSRMLS_CC, 2, translate_key, placeholders)) {
+		if (return_value_ptr && EG(exception)) {
+			ALLOC_INIT_ZVAL(*return_value_ptr);
+		}
 	}
 }
 

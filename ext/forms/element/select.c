@@ -20,6 +20,7 @@
 #include "forms/element/select.h"
 #include "forms/element.h"
 #include "forms/elementinterface.h"
+#include "tag/select.h"
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -100,7 +101,7 @@ PHP_METHOD(Phalcon_Forms_Element_Select, __construct){
 	}
 	
 	phalcon_update_property_this(this_ptr, SL("_optionsValues"), options TSRMLS_CC);
-	phalcon_call_parent_p2_noret(this_ptr, phalcon_forms_element_select_ce, "__construct", name, attributes);
+	PHALCON_CALL_PARENT_NORET(phalcon_forms_element_select_ce, this_ptr, "__construct", name, attributes);
 	
 	PHALCON_MM_RESTORE();
 }
@@ -140,11 +141,23 @@ PHP_METHOD(Phalcon_Forms_Element_Select, getOptions){
  */
 PHP_METHOD(Phalcon_Forms_Element_Select, addOption){
 
-	zval *option;
+	zval **option, *values, *tmp;
 
-	phalcon_fetch_params(0, 1, 0, &option);
+	phalcon_fetch_params_ex(1, 0, &option);
+	PHALCON_ENSURE_IS_ARRAY(option);
+
+	values = phalcon_fetch_nproperty_this(getThis(), SL("_optionsValues"), PH_NOISY TSRMLS_CC);
 	
-	phalcon_update_property_array_append(this_ptr, SL("_optionsValues"), option TSRMLS_CC);
+	ALLOC_ZVAL(tmp);
+	if (Z_TYPE_P(values) != IS_ARRAY) {
+		MAKE_COPY_ZVAL(option, tmp);
+	}
+	else {
+		add_function(tmp, *option, values TSRMLS_CC);
+	}
+
+	Z_SET_REFCOUNT_P(tmp, 0);
+	phalcon_update_property_this(getThis(), SL("_optionsValues"), tmp TSRMLS_CC);
 	RETURN_THISW();
 }
 
@@ -173,6 +186,6 @@ PHP_METHOD(Phalcon_Forms_Element_Select, render){
 	 */
 	PHALCON_INIT_VAR(widget_attributes);
 	phalcon_call_method_p1(widget_attributes, this_ptr, "prepareattributes", attributes);
-	phalcon_call_static_p2(return_value, "phalcon\\tag\\select", "selectfield", widget_attributes, options);
+	PHALCON_RETURN_CALL_CE_STATIC(phalcon_tag_select_ce, "selectfield", widget_attributes, options);
 	RETURN_MM();
 }

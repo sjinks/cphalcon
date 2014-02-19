@@ -39,6 +39,8 @@
 #include "kernel/file.h"
 #include "kernel/require.h"
 
+#include "interned-strings.h"
+
 /**
  * Phalcon\CLI\Console
  *
@@ -299,7 +301,7 @@ PHP_METHOD(Phalcon_CLI_Console, handle){
 	phalcon_read_property_this(&events_manager, this_ptr, SL("_eventsManager"), PH_NOISY_CC);
 	
 	PHALCON_INIT_VAR(service);
-	ZVAL_STRING(service, "router", 1);
+	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_router);
 	
 	PHALCON_INIT_VAR(router);
 	phalcon_call_method_p1(router, dependency_injector, "getshared", service);
@@ -341,14 +343,13 @@ PHP_METHOD(Phalcon_CLI_Console, handle){
 	
 			PHALCON_OBS_VAR(path);
 			phalcon_array_fetch_string(&path, module, SL("path"), PH_NOISY);
+			convert_to_string_ex(&path);
+
 			if (phalcon_file_exists(path TSRMLS_CC) == SUCCESS) {
-				if (phalcon_require(path TSRMLS_CC) == FAILURE) {
-					RETURN_MM();
-				}
+				RETURN_MM_ON_FAILURE(phalcon_require(Z_STRVAL_P(path) TSRMLS_CC));
 			} else {
-				PHALCON_INIT_NVAR(exception_msg);
-				PHALCON_CONCAT_SVS(exception_msg, "Module definition path '", path, "\" doesn't exist");
-				PHALCON_THROW_EXCEPTION_ZVAL(phalcon_cli_console_exception_ce, exception_msg);
+				zend_throw_exception_ex(phalcon_cli_console_exception_ce, 0 TSRMLS_CC, "Modules definition path '%s' does not exist", Z_STRVAL_P(path));
+				PHALCON_MM_RESTORE();
 				return;
 			}
 		}
@@ -389,7 +390,7 @@ PHP_METHOD(Phalcon_CLI_Console, handle){
 	phalcon_call_method(params, router, "getparams");
 	
 	PHALCON_INIT_NVAR(service);
-	ZVAL_STRING(service, "dispatcher", 1);
+	PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_dispatcher);
 	
 	PHALCON_INIT_VAR(dispatcher);
 	phalcon_call_method_p1(dispatcher, dependency_injector, "getshared", service);

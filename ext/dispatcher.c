@@ -36,6 +36,8 @@
 #include "kernel/string.h"
 #include "kernel/exception.h"
 
+#include "interned-strings.h"
+
 /**
  * Phalcon\Dispatcher
  *
@@ -159,9 +161,7 @@ PHALCON_INIT_CLASS(Phalcon_Dispatcher){
  */
 PHP_METHOD(Phalcon_Dispatcher, __construct){
 
-
-	phalcon_update_property_empty_array(phalcon_dispatcher_ce, this_ptr, SL("_params") TSRMLS_CC);
-	
+	phalcon_update_property_empty_array(this_ptr, SL("_params") TSRMLS_CC);
 }
 
 /**
@@ -432,7 +432,7 @@ PHP_METHOD(Phalcon_Dispatcher, getParam){
 			}
 	
 			PHALCON_INIT_VAR(service);
-			ZVAL_STRING(service, "filter", 1);
+			PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_filter);
 	
 			PHALCON_INIT_VAR(filter);
 			phalcon_call_method_p1(filter, dependency_injector, "getshared", service);
@@ -503,16 +503,42 @@ PHP_METHOD(Phalcon_Dispatcher, getReturnedValue){
 	RETURN_MEMBER(this_ptr, "_returnedValue");
 }
 
-static inline int phalcon_dispatcher_fire_event(zval *return_value, zval *mgr, const char *event, zval *source, zval *data TSRMLS_DC)
+static int phalcon_dispatcher_fire_event(zval *return_value, zval *mgr, const char *event, zval *source, zval *data TSRMLS_DC)
 {
 	if (mgr) {
 		zval *event_name;
-		int status;
+		int status, status2;
 
 		MAKE_STD_ZVAL(event_name);
 		ZVAL_STRING(event_name, event, 0);
 
 		status = phalcon_call_method_params(return_value, NULL, mgr, SL("fire"), zend_inline_hash_func(SS("fire")) TSRMLS_CC, (data ? 3 : 2), event_name, source, data);
+
+		if (EG(exception)) {
+			zval *exception = EG(exception);
+			Z_ADDREF_P(exception);
+
+			zend_clear_exception(TSRMLS_C);
+
+			assert(Z_REFCOUNT_P(exception) == 1);
+			/* exception will be destroyed automatically after return from _handleexception */
+			Z_DELREF_P(exception);
+
+			/* source == this_ptr */
+			assert(Z_TYPE_P(source) == IS_OBJECT && instanceof_function_ex(Z_OBJCE_P(source), phalcon_dispatcherinterface_ce, 1 TSRMLS_CC));
+			if (is_phalcon_class(Z_OBJCE_P(source))) {
+				/* Shortcut, save one method call */
+				ZVAL_STRING(event_name, "dispatch:beforeException", 0);
+				status2 = phalcon_call_method_params(NULL, NULL, mgr, SL("fire"), zend_inline_hash_func(SS("fire")) TSRMLS_CC, 3, event_name, source, exception);
+			}
+			else {
+				status2 = phalcon_call_method_params(NULL, NULL, source, SL("_handleexception"), zend_inline_hash_func(SS("_handleexception")) TSRMLS_CC, 1, exception);
+			}
+
+			if (FAILURE == status2) {
+				status = FAILURE;
+			}
+		}
 
 		ZVAL_NULL(event_name);
 		zval_ptr_dtor(&event_name);
@@ -691,7 +717,8 @@ PHP_METHOD(Phalcon_Dispatcher, dispatch){
 			 * DI doesn't have a service with that name, try to load it using an autoloader
 			 */
 			PHALCON_INIT_NVAR(has_service);
-			ZVAL_LONG(has_service, phalcon_class_exists(handler_class, 1 TSRMLS_CC));
+			assert(Z_TYPE_P(handler_class) == IS_STRING);
+			ZVAL_LONG(has_service, phalcon_class_exists(Z_STRVAL_P(handler_class), Z_STRLEN_P(handler_class), 1 TSRMLS_CC));
 		}
 	
 		/** 

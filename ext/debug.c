@@ -18,6 +18,8 @@
 */
 
 #include "debug.h"
+#include "exception.h"
+#include "version.h"
 
 #include <ext/standard/php_string.h>
 #include <Zend/zend_builtin_functions.h>
@@ -268,7 +270,7 @@ PHP_METHOD(Phalcon_Debug, listenExceptions){
 	array_init_size(handler, 2);
 	phalcon_array_append(&handler, this_ptr, PH_SEPARATE);
 	add_next_index_stringl(handler, SL("onUncaughtException"), 1);
-	phalcon_call_func_p1_noret("set_exception_handler", handler);
+	PHALCON_CALL_FUNCTION_NORET("set_exception_handler", handler);
 	RETURN_THIS();
 }
 
@@ -287,7 +289,7 @@ PHP_METHOD(Phalcon_Debug, listenLowSeverity){
 	array_init_size(handler, 2);
 	phalcon_array_append(&handler, this_ptr, PH_SEPARATE);
 	add_next_index_stringl(handler, SL("onUncaughtLowSeverity"), 1);
-	phalcon_call_func_p1_noret("set_exception_handler", handler);
+	PHALCON_CALL_FUNCTION_NORET("set_exception_handler", handler);
 */
 	RETURN_THISW();
 }
@@ -447,8 +449,9 @@ PHP_METHOD(Phalcon_Debug, _getArrayDump){
 							continue;
 						}
 						if (Z_TYPE_P(v) == IS_OBJECT) {
+							zend_class_entry *ce = Z_OBJCE_P(v);
 							PHALCON_INIT_NVAR(class_name);
-							phalcon_get_class(class_name, v, 0 TSRMLS_CC);
+							ZVAL_STRINGL(class_name, ce->name, ce->name_length, !IS_INTERNED(ce->name));
 	
 							PHALCON_INIT_NVAR(var_dump);
 							PHALCON_CONCAT_SVSVS(var_dump, "[", k, "] =&gt; Object(", class_name, ")");
@@ -533,9 +536,10 @@ PHP_METHOD(Phalcon_Debug, _getVarDump){
 	 * If the variable is an object print its class name
 	 */
 	if (Z_TYPE_P(variable) == IS_OBJECT) {
+		const zend_class_entry *ce = Z_OBJCE_P(variable);
 	
 		PHALCON_INIT_VAR(class_name);
-		phalcon_get_class(class_name, variable, 0 TSRMLS_CC);
+		ZVAL_STRINGL(class_name, ce->name, ce->name_length, !IS_INTERNED(ce->name));
 	
 		/** 
 		 * Try to check for a 'dump' method, this surely produces a better printable
@@ -593,8 +597,8 @@ PHP_METHOD(Phalcon_Debug, getMajorVersion){
 
 	PHALCON_MM_GROW();
 
-	PHALCON_INIT_VAR(version);
-	phalcon_call_static(version, "phalcon\\version", "get");
+	PHALCON_OBS_VAR(version);
+	PHALCON_CALL_CE_STATIC(&version, phalcon_version_ce, "get");
 	
 	PHALCON_INIT_VAR(parts);
 	phalcon_fast_explode_str(parts, SL(" "), version);
@@ -701,11 +705,10 @@ PHP_METHOD(Phalcon_Debug, getFileLink) {
 PHP_METHOD(Phalcon_Debug, showTraceItem){
 
 	zval *n, *trace, *link_format, *space, *two_spaces, *underscore;
-	zval *minus, *html, *class_name, *pattern, *is_phalcon_class;
+	zval *minus, *html, *class_name;
 	zval *namespace_separator, *prepare_uri_class;
-	zval *class_reflection, *is_internal = NULL, *lower_class_name;
+	zval *lower_class_name, *prepared_function_name;
 	zval *prepare_internal_class, *type, *function_name = NULL;
-	zval *function_reflection, *prepared_function_name;
 	zval *trace_args, *arguments, *argument = NULL, *dumped_argument = NULL;
 	zval *span_argument = NULL, *joined_arguments, *z_one;
 	zval *file, *line, *show_files, *lines, *number_lines;
@@ -718,7 +721,6 @@ PHP_METHOD(Phalcon_Debug, showTraceItem){
 	HashTable *ah0;
 	HashPosition hp0;
 	zval **hd;
-	zend_class_entry *ce0, *ce1;
 
 	PHALCON_MM_GROW();
 
@@ -742,61 +744,37 @@ PHP_METHOD(Phalcon_Debug, showTraceItem){
 	PHALCON_INIT_VAR(html);
 	PHALCON_CONCAT_SVS(html, "<tr><td align=\"right\" valign=\"top\" class=\"error-number\">#", n, "</td><td>");
 	if (phalcon_array_isset_string(trace, SS("class"))) {
+		zend_class_entry *class_ce;
 	
 		PHALCON_OBS_VAR(class_name);
 		phalcon_array_fetch_string(&class_name, trace, SL("class"), PH_NOISY);
-	
-		PHALCON_INIT_VAR(pattern);
-		ZVAL_STRING(pattern, "/^Phalcon/", 1);
-	
-		PHALCON_INIT_VAR(is_phalcon_class);
-		phalcon_preg_match(is_phalcon_class, NULL, pattern, class_name, NULL TSRMLS_CC);
-	
-		/** 
-		 * We assume that classes starting by Phalcon are framework's classes
-		 */
-		if (zend_is_true(is_phalcon_class)) {
 
+		class_ce = zend_fetch_class(Z_STRVAL_P(class_name), Z_STRLEN_P(class_name), ZEND_FETCH_CLASS_AUTO | ZEND_FETCH_CLASS_SILENT TSRMLS_CC);
+
+		if (!class_ce) {
+			/* Unable to load the class, should never happen */
+		}
+		else if (is_phalcon_class(class_ce)) {
 			PHALCON_INIT_VAR(namespace_separator);
 			ZVAL_STRING(namespace_separator, "\\", 1);
 	
-			/** 
-			 * Prepare the class name according to the Phalcon's conventions
-			 */
+			/* Prepare the class name according to the Phalcon's conventions */
 			PHALCON_INIT_VAR(prepare_uri_class);
 			phalcon_fast_str_replace(prepare_uri_class, namespace_separator, underscore, class_name);
-	
-			/** 
-			 * Generate a link to the official docs
-			 */
+
+			/* Generate a link to the official docs */
 			PHALCON_SCONCAT_SVSVS(html, "<span class=\"error-class\"><a target=\"_new\" href=\"http://docs.phalconphp.com/en/latest/api/", prepare_uri_class, ".html\">", class_name, "</a></span>");
+		} else if (class_ce->type == ZEND_INTERNAL_CLASS) {
+			PHALCON_INIT_VAR(lower_class_name);
+			phalcon_fast_strtolower(lower_class_name, class_name);
+
+			PHALCON_INIT_VAR(prepare_internal_class);
+			phalcon_fast_str_replace(prepare_internal_class, underscore, minus, lower_class_name);
+
+			/* Generate a link to the official docs */
+			PHALCON_SCONCAT_SVSVS(html, "<span class=\"error-class\"><a target=\"_new\" href=\"http://php.net/manual/en/class.", prepare_internal_class, ".php\">", class_name, "</a></span>");
 		} else {
-			ce0 = zend_fetch_class(SL("ReflectionClass"), ZEND_FETCH_CLASS_AUTO TSRMLS_CC);
-			PHALCON_INIT_VAR(class_reflection);
-			object_init_ex(class_reflection, ce0);
-			if (phalcon_has_constructor(class_reflection TSRMLS_CC)) {
-				phalcon_call_method_p1_noret(class_reflection, "__construct", class_name);
-			}
-	
-			/** 
-			 * Check if classes are PHP's classes
-			 */
-			PHALCON_INIT_VAR(is_internal);
-			phalcon_call_method(is_internal, class_reflection, "isinternal");
-			if (zend_is_true(is_internal)) {
-				PHALCON_INIT_VAR(lower_class_name);
-				phalcon_fast_strtolower(lower_class_name, class_name);
-	
-				PHALCON_INIT_VAR(prepare_internal_class);
-				phalcon_fast_str_replace(prepare_internal_class, underscore, minus, lower_class_name);
-	
-				/** 
-				 * Generate a link to the official docs
-				 */
-				PHALCON_SCONCAT_SVSVS(html, "<span class=\"error-class\"><a target=\"_new\" href=\"http://php.net/manual/en/class.", prepare_internal_class, ".php\">", class_name, "</a></span>");
-			} else {
-				PHALCON_SCONCAT_SVS(html, "<span class=\"error-class\">", class_name, "</span>");
-			}
+			PHALCON_SCONCAT_SVS(html, "<span class=\"error-class\">", class_name, "</span>");
 		}
 	
 		/** 
@@ -815,27 +793,21 @@ PHP_METHOD(Phalcon_Debug, showTraceItem){
 		phalcon_array_fetch_string(&function_name, trace, SL("function"), PH_NOISY);
 		PHALCON_SCONCAT_SVS(html, "<span class=\"error-function\">", function_name, "</span>");
 	} else {
+		zend_function *func;
+
 		PHALCON_OBS_NVAR(function_name);
 		phalcon_array_fetch_string(&function_name, trace, SL("function"), PH_NOISY);
+		convert_to_string(function_name);
 	
 		/** 
 		 * Check if the function exists
 		 */
-		if (phalcon_function_exists(function_name TSRMLS_CC) == SUCCESS) {
-			ce1 = zend_fetch_class(SL("ReflectionFunction"), ZEND_FETCH_CLASS_AUTO TSRMLS_CC);
-			PHALCON_INIT_VAR(function_reflection);
-			object_init_ex(function_reflection, ce1);
-			if (phalcon_has_constructor(function_reflection TSRMLS_CC)) {
-				phalcon_call_method_p1_noret(function_reflection, "__construct", function_name);
-			}
-	
-			PHALCON_INIT_NVAR(is_internal);
-			phalcon_call_method(is_internal, function_reflection, "isinternal");
+		if (phalcon_fetch_function(&func, Z_STRVAL_P(function_name), Z_STRLEN_P(function_name) TSRMLS_CC) == SUCCESS) {
 	
 			/** 
 			 * Internal functions links to the PHP documentation
 			 */
-			if (zend_is_true(is_internal)) {
+			if (func->type == ZEND_INTERNAL_FUNCTION) {
 				/** 
 				 * Prepare function's name according to the conventions in the docs
 				 */
@@ -928,8 +900,8 @@ PHP_METHOD(Phalcon_Debug, showTraceItem){
 			/** 
 			 * Open the file to an array using 'file', this respects the openbase-dir directive
 			 */
-			PHALCON_INIT_VAR(lines);
-			phalcon_call_func_p1(lines, "file", file);
+			PHALCON_OBS_VAR(lines);
+			PHALCON_CALL_FUNCTION(&lines, "file", file);
 	
 			PHALCON_INIT_VAR(number_lines);
 			phalcon_fast_count(number_lines, lines TSRMLS_CC);
@@ -1020,7 +992,7 @@ PHP_METHOD(Phalcon_Debug, showTraceItem){
 	
 						PHALCON_INIT_NVAR(is_comment);
 	
-						phalcon_preg_match(is_comment, NULL, comment_pattern, current_line, NULL TSRMLS_CC);
+						RETURN_MM_ON_FAILURE(phalcon_preg_match(is_comment, comment_pattern, current_line, NULL TSRMLS_CC));
 	
 						if (zend_is_true(is_comment)) {
 							PHALCON_INIT_NVAR(spaced_current_line);
@@ -1082,11 +1054,12 @@ PHP_METHOD(Phalcon_Debug, onUncaughtException){
 	char* link_format;
 	zend_bool ini_exists = 1;
 	zval z_link_format = zval_used_for_init;
-
+	zend_class_entry *ce;
 
 	PHALCON_MM_GROW();
 
 	phalcon_fetch_params(1, 1, 0, &exception);
+	PHALCON_VERIFY_CLASS_EX(exception, zend_exception_get_default(TSRMLS_C), phalcon_exception_ce, 1);
 	
 	/** 
 	 * Cancel the output buffer if active
@@ -1112,7 +1085,8 @@ PHP_METHOD(Phalcon_Debug, onUncaughtException){
 	zend_update_static_property_bool(phalcon_debug_ce, SL("_isActive"), 1 TSRMLS_CC);
 	
 	PHALCON_INIT_VAR(class_name);
-	phalcon_get_class(class_name, exception, 0 TSRMLS_CC);
+	ce = Z_OBJCE_P(exception);
+	ZVAL_STRINGL(class_name, ce->name, ce->name_length, !IS_INTERNED(ce->name));
 	
 	PHALCON_INIT_NVAR(message);
 	phalcon_call_method(message, exception, "getmessage");
@@ -1149,7 +1123,7 @@ PHP_METHOD(Phalcon_Debug, onUncaughtException){
 	phalcon_call_method(line, exception, "getline");
 	
 	link_format = zend_ini_string_ex(SS("xdebug.file_link_format"), 0, &ini_exists);
-	if (!link_format || !ini_exists) {
+	if (!link_format || !ini_exists || !strlen(link_format)) {
 		link_format = "file://%f#%l";
 	}
 
@@ -1223,22 +1197,24 @@ PHP_METHOD(Phalcon_Debug, onUncaughtException){
 		 */
 		phalcon_concat_self_str(&html, SL("<div id=\"error-tabs-2\"><table cellspacing=\"0\" align=\"center\" class=\"superglobal-detail\">") TSRMLS_CC);
 		phalcon_concat_self_str(&html, SL("<tr><th>Key</th><th>Value</th></tr>") TSRMLS_CC);
-		phalcon_get_global(&_REQUEST, SS("_REQUEST") TSRMLS_CC);
+		_REQUEST = phalcon_get_global(SS("_REQUEST") TSRMLS_CC);
 	
-		phalcon_is_iterable(_REQUEST, &ah1, &hp1, 0, 0);
-	
-		while (zend_hash_get_current_data_ex(ah1, (void**) &hd, &hp1) == SUCCESS) {
-			PHALCON_GET_HKEY(key_request, ah1, hp1);
-			PHALCON_GET_HVALUE(value);
+		if (Z_TYPE_P(_REQUEST) == IS_ARRAY) {
+			phalcon_is_iterable(_REQUEST, &ah1, &hp1, 0, 0);
 
-			if (Z_TYPE_P(value) == IS_ARRAY) {
-				PHALCON_INIT_NVAR(joined_value);
-				phalcon_call_method_p1(joined_value, this_ptr, "_getvardump", value);
-				PHALCON_SCONCAT_SVSVS(html, "<tr><td class=\"key\">", key_request, "</td><td>", joined_value, "</td></tr>");
-			} else {
-				PHALCON_SCONCAT_SVSVS(html, "<tr><td class=\"key\">", key_request, "</td><td>", value, "</td></tr>");
+			while (zend_hash_get_current_data_ex(ah1, (void**) &hd, &hp1) == SUCCESS) {
+				PHALCON_GET_HKEY(key_request, ah1, hp1);
+				PHALCON_GET_HVALUE(value);
+	
+				if (Z_TYPE_P(value) == IS_ARRAY) {
+					PHALCON_INIT_NVAR(joined_value);
+					phalcon_call_method_p1(joined_value, this_ptr, "_getvardump", value);
+					PHALCON_SCONCAT_SVSVS(html, "<tr><td class=\"key\">", key_request, "</td><td>", joined_value, "</td></tr>");
+				} else {
+					PHALCON_SCONCAT_SVSVS(html, "<tr><td class=\"key\">", key_request, "</td><td>", value, "</td></tr>");
+				}
+				zend_hash_move_forward_ex(ah1, &hp1);
 			}
-			zend_hash_move_forward_ex(ah1, &hp1);
 		}
 	
 		phalcon_concat_self_str(&html, SL("</table></div>") TSRMLS_CC);
@@ -1248,20 +1224,22 @@ PHP_METHOD(Phalcon_Debug, onUncaughtException){
 		 */
 		phalcon_concat_self_str(&html, SL("<div id=\"error-tabs-3\"><table cellspacing=\"0\" align=\"center\" class=\"superglobal-detail\">") TSRMLS_CC);
 		phalcon_concat_self_str(&html, SL("<tr><th>Key</th><th>Value</th></tr>") TSRMLS_CC);
-		phalcon_get_global(&_SERVER, SS("_SERVER") TSRMLS_CC);
+		_SERVER = phalcon_get_global(SS("_SERVER") TSRMLS_CC);
 	
-		phalcon_is_iterable(_SERVER, &ah2, &hp2, 0, 0);
-	
-		while (zend_hash_get_current_data_ex(ah2, (void**) &hd, &hp2) == SUCCESS) {
-	
-			PHALCON_GET_HKEY(key_server, ah2, hp2);
-			PHALCON_GET_HVALUE(value);
+		if (Z_TYPE_P(_SERVER) == IS_ARRAY) {
+			phalcon_is_iterable(_SERVER, &ah2, &hp2, 0, 0);
 
-			PHALCON_INIT_NVAR(dumped_argument);
-			phalcon_call_method_p1(dumped_argument, this_ptr, "_getvardump", value);
-			PHALCON_SCONCAT_SVSVS(html, "<tr><td class=\"key\">", key_server, "</td><td>", dumped_argument, "</td></tr>");
+			while (zend_hash_get_current_data_ex(ah2, (void**) &hd, &hp2) == SUCCESS) {
+
+				PHALCON_GET_HKEY(key_server, ah2, hp2);
+				PHALCON_GET_HVALUE(value);
 	
-			zend_hash_move_forward_ex(ah2, &hp2);
+				PHALCON_INIT_NVAR(dumped_argument);
+				phalcon_call_method_p1(dumped_argument, this_ptr, "_getvardump", value);
+				PHALCON_SCONCAT_SVSVS(html, "<tr><td class=\"key\">", key_server, "</td><td>", dumped_argument, "</td></tr>");
+
+				zend_hash_move_forward_ex(ah2, &hp2);
+			}
 		}
 	
 		phalcon_concat_self_str(&html, SL("</table></div>") TSRMLS_CC);
@@ -1269,8 +1247,8 @@ PHP_METHOD(Phalcon_Debug, onUncaughtException){
 		/** 
 		 * Show included files
 		 */
-		PHALCON_INIT_VAR(files);
-		phalcon_call_func(files, "get_included_files");
+		PHALCON_OBS_VAR(files);
+		PHALCON_CALL_FUNCTION(&files, "get_included_files");
 		phalcon_concat_self_str(&html, SL("<div id=\"error-tabs-4\"><table cellspacing=\"0\" align=\"center\" class=\"superglobal-detail\">") TSRMLS_CC);
 		phalcon_concat_self_str(&html, SL("<tr><th>#</th><th>Path</th></tr>") TSRMLS_CC);
 	

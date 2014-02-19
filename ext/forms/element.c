@@ -21,6 +21,7 @@
 #include "forms/elementinterface.h"
 #include "forms/exception.h"
 #include "validation/message/group.h"
+#include "tag.h"
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -135,6 +136,8 @@ PHALCON_INIT_CLASS(Phalcon_Forms_Element){
 	zend_declare_property_null(phalcon_forms_element_ce, SL("_filters"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_forms_element_ce, SL("_options"), ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(phalcon_forms_element_ce, SL("_messages"), ZEND_ACC_PROTECTED TSRMLS_CC);
+
+	zend_class_implements(phalcon_forms_element_ce TSRMLS_CC, 1, phalcon_forms_elementinterface_ce);
 
 	return SUCCESS;
 }
@@ -384,7 +387,7 @@ PHP_METHOD(Phalcon_Forms_Element, prepareAttributes){
 		PHALCON_CPY_WRT(widget_attributes, attributes);
 	}
 	
-	phalcon_array_update_long(&widget_attributes, 0, &name, PH_COPY | PH_SEPARATE);
+	phalcon_array_update_long(&widget_attributes, 0, name, PH_COPY | PH_SEPARATE);
 	
 	/** 
 	 * Merge passed parameters with default ones
@@ -424,10 +427,10 @@ PHP_METHOD(Phalcon_Forms_Element, prepareAttributes){
 				if (zend_is_true(value)) {
 					phalcon_array_update_string_string(&merged_attributes, SL("checked"), SL("checked"), PH_SEPARATE);
 				}
-				phalcon_array_update_string(&merged_attributes, SL("value"), &value, PH_COPY | PH_SEPARATE);
+				phalcon_array_update_string(&merged_attributes, SL("value"), value, PH_COPY | PH_SEPARATE);
 			}
 		} else {
-			phalcon_array_update_string(&merged_attributes, SL("value"), &value, PH_COPY | PH_SEPARATE);
+			phalcon_array_update_string(&merged_attributes, SL("value"), value, PH_COPY | PH_SEPARATE);
 		}
 	}
 	
@@ -734,8 +737,8 @@ PHP_METHOD(Phalcon_Forms_Element, getValue){
 		/** 
 		 * Check if the tag has a default value
 		 */
-		PHALCON_INIT_VAR(has_default_value);
-		phalcon_call_static_p1(has_default_value, "phalcon\\tag", "hasvalue", name);
+		PHALCON_OBS_VAR(has_default_value);
+		PHALCON_CALL_CE_STATIC(&has_default_value, phalcon_tag_ce, "hasvalue", name);
 		if (!zend_is_true(has_default_value)) {
 			/** 
 			 * Gets the possible value for the widget
@@ -867,7 +870,7 @@ PHP_METHOD(Phalcon_Forms_Element, clear){
 	PHALCON_MM_GROW();
 
 	name = phalcon_fetch_nproperty_this(this_ptr, SL("_name"), PH_NOISY_CC);
-	phalcon_call_static_p2_noret("phalcon\\tag", "setdefault", name, PHALCON_GLOBAL(z_null));
+	PHALCON_CALL_CE_STATIC_NORET(phalcon_tag_ce, "setdefault", name, PHALCON_GLOBAL(z_null));
 	RETURN_THIS();
 }
 

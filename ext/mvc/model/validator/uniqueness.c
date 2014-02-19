@@ -33,6 +33,8 @@
 #include "kernel/string.h"
 #include "kernel/object.h"
 
+#include "interned-strings.h"
+
 /**
  * Phalcon\Mvc\Model\Validator\Uniqueness
  *
@@ -95,7 +97,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_Uniqueness, validate){
 	zval *exception_message = NULL, *value = NULL, *compose_condition = NULL;
 	zval *bind_type = NULL, *condition = NULL, *operation_made;
 	zval *primary_fields, *primary_field = NULL, *attribute_field = NULL;
-	zval *join_conditions, *params, *class_name;
+	zval *join_conditions, *params;
 	zval *message = NULL, *join_fields, *type, *is_set_code, *code;
 	HashTable *ah0, *ah1;
 	HashPosition hp0, hp1;
@@ -325,26 +327,24 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_Uniqueness, validate){
 	 * We don't trust the user, so we pass the parameters as bound parameters
 	 */
 	PHALCON_INIT_VAR(params);
-	array_init(params);
-	phalcon_array_update_string(&params, SL("di"), &dependency_injector, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&params, SL("conditions"), &join_conditions, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&params, SL("bind"), &bind_params, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&params, SL("bindTypes"), &bind_types, PH_COPY | PH_SEPARATE);
-	
-	PHALCON_INIT_VAR(class_name);
-	phalcon_get_class(class_name, record, 0 TSRMLS_CC);
+	array_init_size(params, 4);
+	phalcon_array_update_string(&params, SL("di"), dependency_injector, PH_COPY);
+	phalcon_array_update_string(&params, SL("conditions"), join_conditions, PH_COPY);
+	phalcon_array_update_string(&params, SL("bind"), bind_params, PH_COPY);
+	phalcon_array_update_string(&params, SL("bindTypes"), bind_types, PH_COPY);
 	
 	/** 
 	 * Check using a standard count
 	 */
-	phalcon_call_zval_str_static_p1(number, class_name, "count", params);
+	PHALCON_OBSERVE_OR_NULLIFY_VAR(number);
+	PHALCON_CALL_CE_STATIC(&number, Z_OBJCE_P(record), "count", params);
 	if (!PHALCON_IS_LONG(number, 0)) {
 	
 		/** 
 		 * Check if the developer has defined a custom message
 		 */
 		PHALCON_INIT_NVAR(option);
-		ZVAL_STRING(option, "message", 1);
+		PHALCON_ZVAL_MAYBE_INTERNED_STRING(option, phalcon_interned_message);
 	
 		PHALCON_INIT_VAR(message);
 		phalcon_call_method_p1(message, this_ptr, "getoption", option);
@@ -371,7 +371,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Validator_Uniqueness, validate){
 		 * Is code set
 		 */
 		PHALCON_INIT_NVAR(option);
-		ZVAL_STRING(option, "code", 1);
+		PHALCON_ZVAL_MAYBE_INTERNED_STRING(option, phalcon_interned_code);
 
 		PHALCON_INIT_VAR(is_set_code);
 		phalcon_call_method_p1(is_set_code, this_ptr, "issetoption", option);

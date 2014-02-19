@@ -29,6 +29,8 @@
 #include "kernel/operators.h"
 #include "kernel/fcall.h"
 
+#include "internal/arginfo.h"
+
 /**
  * Phalcon\Db\Column
  *
@@ -70,12 +72,13 @@ PHP_METHOD(Phalcon_Db_Column, getAfterPosition);
 PHP_METHOD(Phalcon_Db_Column, getBindType);
 PHP_METHOD(Phalcon_Db_Column, __set_state);
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_db_column___set_state, 0, 0, 1)
-	ZEND_ARG_INFO(0, data)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_db_column___construct, 0, 0, 2)
+	ZEND_ARG_INFO(0, columnName)
+	ZEND_ARG_INFO(0, definition)
 ZEND_END_ARG_INFO()
 
 static const zend_function_entry phalcon_db_column_method_entry[] = {
-	PHP_ME(Phalcon_Db_Column, __construct, arginfo_phalcon_db_columninterface___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(Phalcon_Db_Column, __construct, arginfo_phalcon_db_column___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	PHP_ME(Phalcon_Db_Column, getSchemaName, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Db_Column, getName, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Db_Column, getType, NULL, ZEND_ACC_PUBLIC)
@@ -89,7 +92,7 @@ static const zend_function_entry phalcon_db_column_method_entry[] = {
 	PHP_ME(Phalcon_Db_Column, isFirst, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Db_Column, getAfterPosition, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Db_Column, getBindType, NULL, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Db_Column, __set_state, arginfo_phalcon_db_column___set_state, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	PHP_ME(Phalcon_Db_Column, __set_state, arginfo___set_state, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_FE_END
 };
 
@@ -413,43 +416,43 @@ PHP_METHOD(Phalcon_Db_Column, __set_state){
 	array_init(definition);
 
 	if (phalcon_array_isset_string_fetch(&column_type, data, SS("_type"))) {
-		phalcon_array_update_string(&definition, SL("type"), &column_type, PH_COPY);
+		phalcon_array_update_string(&definition, SL("type"), column_type, PH_COPY);
 	}
 	
 	if (phalcon_array_isset_string_fetch(&not_null, data, SS("_notNull"))) {
-		phalcon_array_update_string(&definition, SL("notNull"), &not_null, PH_COPY);
+		phalcon_array_update_string(&definition, SL("notNull"), not_null, PH_COPY);
 	}
 	
 	if (phalcon_array_isset_string_fetch(&primary, data, SS("_primary"))) {
-		phalcon_array_update_string(&definition, SL("primary"), &primary, PH_COPY);
+		phalcon_array_update_string(&definition, SL("primary"), primary, PH_COPY);
 	}
 	
 	if (phalcon_array_isset_string_fetch(&size, data, SS("_size"))) {
-		phalcon_array_update_string(&definition, SL("size"), &size, PH_COPY);
+		phalcon_array_update_string(&definition, SL("size"), size, PH_COPY);
 	}
 	
 	if (phalcon_array_isset_string_fetch(&scale, data, SS("_scale"))) {
-		phalcon_array_update_string(&definition, SL("scale"), &scale, PH_COPY);
+		phalcon_array_update_string(&definition, SL("scale"), scale, PH_COPY);
 	}
 
 	if (phalcon_array_isset_string_fetch(&dunsigned, data, SS("_unsigned"))) {
-		phalcon_array_update_string(&definition, SL("unsigned"), &dunsigned, PH_COPY);
+		phalcon_array_update_string(&definition, SL("unsigned"), dunsigned, PH_COPY);
 	}
 	
 	if (phalcon_array_isset_string_fetch(&after, data, SS("_after"))) {
-		phalcon_array_update_string(&definition, SL("after"), &after, PH_COPY);
+		phalcon_array_update_string(&definition, SL("after"), after, PH_COPY);
 	}
 	
 	if (phalcon_array_isset_string_fetch(&is_numeric, data, SS("_isNumeric"))) {
-		phalcon_array_update_string(&definition, SL("isNumeric"), &is_numeric, PH_COPY);
+		phalcon_array_update_string(&definition, SL("isNumeric"), is_numeric, PH_COPY);
 	}
 	
 	if (phalcon_array_isset_string_fetch(&first, data, SS("_first"))) {
-		phalcon_array_update_string(&definition, SL("first"), &first, PH_COPY);
+		phalcon_array_update_string(&definition, SL("first"), first, PH_COPY);
 	}
 	
 	if (phalcon_array_isset_string_fetch(&bind_type, data, SS("_bindType"))) {
-		phalcon_array_update_string(&definition, SL("bindType"), &bind_type, PH_COPY);
+		phalcon_array_update_string(&definition, SL("bindType"), bind_type, PH_COPY);
 	}
 	
 	object_init_ex(return_value, phalcon_db_column_ce);

@@ -20,6 +20,7 @@
 #include "mvc/model/resultset.h"
 #include "mvc/model/resultsetinterface.h"
 #include "mvc/model/exception.h"
+#include "mvc/model.h"
 
 #include <ext/pdo/php_pdo_driver.h>
 
@@ -33,6 +34,8 @@
 #include "kernel/concat.h"
 #include "kernel/exception.h"
 #include "kernel/variables.h"
+
+#include "internal/arginfo.h"
 
 /**
  * Phalcon\Mvc\Model\Resultset\Simple
@@ -60,16 +63,12 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_model_resultset_simple_toarray, 0, 0,
 	ZEND_ARG_INFO(0, renameColumns)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_model_resultset_simple_unserialize, 0, 0, 1)
-	ZEND_ARG_INFO(0, data)
-ZEND_END_ARG_INFO()
-
 static const zend_function_entry phalcon_mvc_model_resultset_simple_method_entry[] = {
 	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, __construct, arginfo_phalcon_mvc_model_resultset_simple___construct, ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
-	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, valid, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, valid, arginfo_iterator_valid, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, toArray, arginfo_phalcon_mvc_model_resultset_simple_toarray, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, serialize, NULL, ZEND_ACC_PUBLIC)
-	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, unserialize, arginfo_phalcon_mvc_model_resultset_simple_unserialize, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, serialize, arginfo_serializable_serialize, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Mvc_Model_Resultset_Simple, unserialize, arginfo_serializable_unserialize, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 
@@ -244,7 +243,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, valid){
 	/** 
 	 * Hydrate based on the current hydration
 	 */
-	
+	PHALCON_OBS_VAR(active_row);
 	switch (phalcon_get_intval(hydrate_mode)) {
 	
 		case 0:
@@ -257,16 +256,14 @@ PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, valid){
 			/** 
 			 * Performs the standard hydration based on objects
 			 */
-			PHALCON_INIT_VAR(active_row);
-			phalcon_call_static_p5(active_row, "phalcon\\mvc\\model", "cloneresultmap", model, row, column_map, dirty_state, keep_snapshots);
+			PHALCON_CALL_CE_STATIC(&active_row, phalcon_mvc_model_ce, "cloneresultmap", model, row, column_map, dirty_state, keep_snapshots);
 			break;
 	
 		default:
 			/** 
 			 * Other kinds of hydrations
 			 */
-			PHALCON_INIT_NVAR(active_row);
-			phalcon_call_static_p3(active_row, "phalcon\\mvc\\model", "cloneresultmaphydrate", row, column_map, hydrate_mode);
+			PHALCON_CALL_CE_STATIC(&active_row, phalcon_mvc_model_ce, "cloneresultmaphydrate", row, column_map, hydrate_mode);
 			break;
 	
 	}
@@ -420,7 +417,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, toArray){
 					/** 
 					 * Add the value renamed
 					 */
-					phalcon_array_update_zval(&renamed, renamed_key, &value, PH_COPY | PH_SEPARATE);
+					phalcon_array_update_zval(&renamed, renamed_key, value, PH_COPY | PH_SEPARATE);
 	
 					zend_hash_move_forward_ex(ah1, &hp1);
 				}
@@ -473,11 +470,11 @@ PHP_METHOD(Phalcon_Mvc_Model_Resultset_Simple, serialize){
 	
 	PHALCON_INIT_VAR(data);
 	array_init_size(data, 5);
-	phalcon_array_update_string(&data, SL("model"), &model, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&data, SL("cache"), &cache, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&data, SL("rows"), &records, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&data, SL("columnMap"), &column_map, PH_COPY | PH_SEPARATE);
-	phalcon_array_update_string(&data, SL("hydrateMode"), &hydrate_mode, PH_COPY | PH_SEPARATE);
+	phalcon_array_update_string(&data, SL("model"), model, PH_COPY);
+	phalcon_array_update_string(&data, SL("cache"), cache, PH_COPY);
+	phalcon_array_update_string(&data, SL("rows"), records, PH_COPY);
+	phalcon_array_update_string(&data, SL("columnMap"), column_map, PH_COPY);
+	phalcon_array_update_string(&data, SL("hydrateMode"), hydrate_mode, PH_COPY);
 	
 	/** 
 	 * Force to re-execute the query

@@ -61,6 +61,8 @@ PHALCON_INIT_CLASS(Phalcon_Mvc_View_Engine){
 
 	zend_declare_property_null(phalcon_mvc_view_engine_ce, SL("_view"), ZEND_ACC_PROTECTED TSRMLS_CC);
 
+	zend_class_implements(phalcon_mvc_view_engine_ce TSRMLS_CC, 1, phalcon_mvc_view_engineinterface_ce);
+
 	return SUCCESS;
 }
 
@@ -120,9 +122,8 @@ PHP_METHOD(Phalcon_Mvc_View_Engine, partial){
 		params = PHALCON_GLOBAL(z_null);
 	}
 	
-	PHALCON_OBS_VAR(view);
-	phalcon_read_property_this(&view, this_ptr, SL("_view"), PH_NOISY_CC);
-	phalcon_call_method_p2(return_value, view, "partial", partial_path, params);
+	view = phalcon_fetch_nproperty_this(this_ptr, SL("_view"), PH_NOISY_CC);
+	phalcon_return_call_method_p2(view, "partial", partial_path, params);
 	RETURN_MM();
 }
 
