@@ -17,11 +17,10 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
+#include "kernel/memory.h"
 
 #include <Zend/zend_alloc.h>
 
-#include "kernel/memory.h"
 #include "kernel/fcall.h"
 #include "kernel/backtrace.h"
 
@@ -79,6 +78,9 @@ static phalcon_memory_entry* phalcon_memory_grow_stack_common(zend_phalcon_globa
 		assert(g->active_memory < g->end_memory && g->active_memory >= g->start_memory);
 		g->active_memory = g->active_memory->next;
 	}
+
+	assert(g->active_memory->pointer == 0);
+	assert(g->active_memory->hash_pointer == 0);
 
 	return g->active_memory;
 }
@@ -274,7 +276,7 @@ void phalcon_dump_all_frames(TSRMLS_D)
 /**
  * Finishes the current memory stack by releasing allocated memory
  */
-int ZEND_FASTCALL phalcon_memory_restore_stack(const char *func TSRMLS_DC)
+int phalcon_memory_restore_stack(const char *func TSRMLS_DC)
 {
 	zend_phalcon_globals *phalcon_globals_ptr = PHALCON_VGLOBAL;
 
@@ -298,7 +300,7 @@ int ZEND_FASTCALL phalcon_memory_restore_stack(const char *func TSRMLS_DC)
 /**
  * Adds a memory frame in the current executed method
  */
-void ZEND_FASTCALL phalcon_memory_grow_stack(const char *func TSRMLS_DC)
+void phalcon_memory_grow_stack(const char *func TSRMLS_DC)
 {
 	phalcon_memory_entry *entry = phalcon_memory_grow_stack_common(PHALCON_VGLOBAL);
 	entry->func = func;
@@ -307,7 +309,7 @@ void ZEND_FASTCALL phalcon_memory_grow_stack(const char *func TSRMLS_DC)
 /**
  * Adds a memory frame in the current executed method
  */
-void ZEND_FASTCALL phalcon_memory_grow_stack(TSRMLS_D)
+void phalcon_memory_grow_stack(TSRMLS_D)
 {
 	phalcon_memory_grow_stack_common(PHALCON_VGLOBAL);
 }
@@ -315,7 +317,7 @@ void ZEND_FASTCALL phalcon_memory_grow_stack(TSRMLS_D)
 /**
  * Finishes the current memory stack by releasing allocated memory
  */
-int ZEND_FASTCALL phalcon_memory_restore_stack(TSRMLS_D)
+int phalcon_memory_restore_stack(TSRMLS_D)
 {
 	phalcon_memory_restore_stack_common(PHALCON_VGLOBAL TSRMLS_CC);
 	return SUCCESS;
@@ -393,7 +395,7 @@ PHALCON_ATTR_NONNULL1(2) static inline void phalcon_do_memory_observe(zval **var
 /**
  * Observes a memory pointer to release its memory at the end of the request
  */
-void ZEND_FASTCALL phalcon_memory_observe(zval **var TSRMLS_DC)
+void phalcon_memory_observe(zval **var TSRMLS_DC)
 {
 	zend_phalcon_globals *g = PHALCON_VGLOBAL;
 	phalcon_do_memory_observe(var, g);
@@ -403,7 +405,7 @@ void ZEND_FASTCALL phalcon_memory_observe(zval **var TSRMLS_DC)
 /**
  * Observes a variable and allocates memory for it
  */
-void ZEND_FASTCALL phalcon_memory_alloc(zval **var TSRMLS_DC)
+void phalcon_memory_alloc(zval **var TSRMLS_DC)
 {
 	zend_phalcon_globals *g = PHALCON_VGLOBAL;
 	phalcon_do_memory_observe(var, g);
@@ -414,7 +416,7 @@ void ZEND_FASTCALL phalcon_memory_alloc(zval **var TSRMLS_DC)
  * Observes a variable and allocates memory for it
  * Marks hash key zvals to be nulled before freeing
  */
-void ZEND_FASTCALL phalcon_memory_alloc_pnull(zval **var TSRMLS_DC)
+void phalcon_memory_alloc_pnull(zval **var TSRMLS_DC)
 {
 	zend_phalcon_globals *g = PHALCON_VGLOBAL;
 	phalcon_memory_entry *active_memory = g->active_memory;
@@ -441,7 +443,7 @@ void ZEND_FASTCALL phalcon_memory_alloc_pnull(zval **var TSRMLS_DC)
 /**
  * Removes a memory pointer from the active memory pool
  */
-void ZEND_FASTCALL phalcon_memory_remove(zval **var TSRMLS_DC) {
+void phalcon_memory_remove(zval **var TSRMLS_DC) {
 	zval_ptr_dtor(var);
 	*var = NULL;
 }
@@ -449,7 +451,7 @@ void ZEND_FASTCALL phalcon_memory_remove(zval **var TSRMLS_DC) {
 /**
  * Cleans the phalcon memory stack recursivery
  */
-int ZEND_FASTCALL phalcon_clean_restore_stack(TSRMLS_D) {
+int phalcon_clean_restore_stack(TSRMLS_D) {
 
 	zend_phalcon_globals *phalcon_globals_ptr = PHALCON_VGLOBAL;
 
@@ -463,7 +465,7 @@ int ZEND_FASTCALL phalcon_clean_restore_stack(TSRMLS_D) {
 /**
  * Copies a variable only if its refcount is greater than 1
  */
-void ZEND_FASTCALL phalcon_copy_ctor(zval *destination, zval *origin) {
+void phalcon_copy_ctor(zval *destination, zval *origin) {
 	if (Z_REFCOUNT_P(origin) > 1) {
 		zval_copy_ctor(destination);
 	} else {

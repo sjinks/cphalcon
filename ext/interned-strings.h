@@ -76,6 +76,7 @@ extern const char *phalcon_interned_op;
 extern const char *phalcon_interned_order;
 extern const char *phalcon_interned_orderBy;
 extern const char *phalcon_interned_params;
+extern const char *phalcon_interned_parent;
 extern const char *phalcon_interned_paths;
 extern const char *phalcon_interned_qualified;
 extern const char *phalcon_interned_qualifiedName;
@@ -84,10 +85,12 @@ extern const char *phalcon_interned_response;
 extern const char *phalcon_interned_right;
 extern const char *phalcon_interned_router;
 extern const char *phalcon_interned_select;
+extern const char *phalcon_interned_self;
 extern const char *phalcon_interned_session;
 extern const char *phalcon_interned_sort;
 extern const char *phalcon_interned_source;
 extern const char *phalcon_interned_sqlAlias;
+extern const char *phalcon_interned_static;
 extern const char *phalcon_interned_table;
 extern const char *phalcon_interned_tables;
 extern const char *phalcon_interned_type;
@@ -110,14 +113,14 @@ static inline const char* zend_new_interned_string(const char *arKey, int nKeyLe
 
 #else
 
-#define PHALCON_ZVAL_MAYBE_INTERNED_STRING(pz, string) \
-	do { \
-		if (IS_INTERNED(string)) { \
-			ZVAL_STRINGL(pz, string, INTERNED_LEN(string)-1, 0); \
-		} \
-		else { \
-			ZVAL_STRING(pz, string, 1); \
-		} \
+#define PHALCON_ZVAL_MAYBE_INTERNED_STRING(pz, string)            \
+	do {                                                          \
+		if (IS_INTERNED(string)) {                                \
+			ZVAL_STRINGL(pz, string, INTERNED_LEN(string)-1, 0);  \
+		}                                                         \
+		else {                                                    \
+			ZVAL_STRING(pz, string, 1);                           \
+		}                                                         \
 	} while (0)
 
 #endif /* PHP_VERSION_ID < 50400 */

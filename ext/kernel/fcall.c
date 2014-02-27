@@ -17,18 +17,19 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
+#include "kernel/fcall.h"
 
 #include <Zend/zend_API.h>
 #include <Zend/zend_exceptions.h>
 #include <Zend/zend_execute.h>
 
 #include "kernel/main.h"
-#include "kernel/fcall.h"
 #include "kernel/memory.h"
 #include "kernel/hash.h"
 #include "kernel/exception.h"
 #include "kernel/backtrace.h"
+
+#include "interned-strings.h"
 
 #if PHP_VERSION_ID >= 50500
 static const unsigned char tolower_map[256] = {
@@ -138,9 +139,9 @@ static ulong phalcon_make_fcall_key(char **result, size_t *length, const zend_cl
 		l   = (size_t)(Z_STRLEN_P(function_name)) + 1;
 		c   = Z_STRVAL_P(function_name);
 		len = 2 * ppzce_size + l;
-		buf = ecalloc(1, len);
+		buf = emalloc(len);
 
-		memcpy(buf,                  c,               l - 1);
+		memcpy(buf,                  c,               l);
 		memcpy(buf + l,              &calling_scope,  ppzce_size);
 		memcpy(buf + l + ppzce_size, &obj_ce,         ppzce_size);
 	}
@@ -154,9 +155,9 @@ static ulong phalcon_make_fcall_key(char **result, size_t *length, const zend_cl
 			l   = (size_t)(Z_STRLEN_PP(method)) + 1;
 			c   = Z_STRVAL_PP(method);
 			len = 2 * ppzce_size + l;
-			buf = ecalloc(1, len);
+			buf = emalloc(len);
 
-			memcpy(buf,                  c,               l - 1);
+			memcpy(buf,                  c,               l);
 			memcpy(buf + l,              &calling_scope,  ppzce_size);
 			memcpy(buf + l + ppzce_size, &obj_ce,         ppzce_size);
 		}
@@ -165,9 +166,9 @@ static ulong phalcon_make_fcall_key(char **result, size_t *length, const zend_cl
 		if (Z_OBJ_HANDLER_P(function_name, get_closure)) {
 			l   = sizeof("__invoke");
 			len = 2 * ppzce_size + l;
-			buf = ecalloc(1, len);
+			buf = emalloc(len);
 
-			memcpy(buf,                  "__invoke",     l - 1);
+			memcpy(buf,                  "__invoke",     l);
 			memcpy(buf + l,              &calling_scope, ppzce_size);
 			memcpy(buf + l + ppzce_size, &obj_ce,        ppzce_size);
 		}
@@ -335,6 +336,13 @@ int phalcon_call_user_function(zval **object_pp, zend_class_entry *obj_ce, phalc
 		params_ptr = NULL;
 	}
 
+	if (type != phalcon_fcall_function && !object_pp) {
+		object_pp = EG(This) ? &EG(This) : NULL;
+		if (!obj_ce && object_pp) {
+			obj_ce = Z_OBJCE_PP(object_pp);
+		}
+	}
+
 	if (obj_ce) {
 		EG(scope) = obj_ce;
 	}
@@ -404,7 +412,7 @@ int phalcon_call_user_function(zval **object_pp, zend_class_entry *obj_ce, phalc
 #else
 		phalcon_fcall_cache_entry *cache_entry = fcic.function_handler;
 #endif
-		if (FAILURE == zend_hash_add(phalcon_globals_ptr->fcache, fcall_key, fcall_key_len, &cache_entry, sizeof(phalcon_fcall_cache_entry*), NULL)) {
+		if (FAILURE == zend_hash_quick_add(phalcon_globals_ptr->fcache, fcall_key, fcall_key_len, fcall_key_hash, &cache_entry, sizeof(phalcon_fcall_cache_entry*), NULL)) {
 #ifndef PHALCON_RELEASE
 			free(cache_entry);
 #endif
@@ -479,13 +487,13 @@ int phalcon_call_class_method_aparams(zval **return_value_ptr, zend_class_entry 
 
 	array_init_size(&fn, 2);
 	switch (type) {
-		case phalcon_fcall_parent: add_next_index_stringl(&fn, ZEND_STRL("parent"), 1); break;
-		case phalcon_fcall_self:   assert(!ce); add_next_index_stringl(&fn, ZEND_STRL("self"), 1); break;
-		case phalcon_fcall_static: assert(!ce); add_next_index_stringl(&fn, ZEND_STRL("static"), 1); break;
+		case phalcon_fcall_parent: add_next_index_stringl(&fn, ISL(parent), !IS_INTERNED(phalcon_interned_parent)); break;
+		case phalcon_fcall_self:   assert(!ce); add_next_index_stringl(&fn, ISL(self), !IS_INTERNED(phalcon_interned_self)); break;
+		case phalcon_fcall_static: assert(!ce); add_next_index_stringl(&fn, ISL(static), !IS_INTERNED(phalcon_interned_static)); break;
 
 		case phalcon_fcall_ce:
 			assert(ce != NULL);
-			add_next_index_stringl(&fn, ce->name, ce->name_length, 1);
+			add_next_index_stringl(&fn, ce->name, ce->name_length, !IS_INTERNED(ce->name));
 			break;
 
 		case phalcon_fcall_method:
