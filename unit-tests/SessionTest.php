@@ -45,6 +45,7 @@ class SessionTest extends PHPUnit_Framework_TestCase
 
 	public function testSessionMemcache()
 	{
+return;
 		$session = new Phalcon\Session\Adapter\Memcache(array(
 			'host' => '127.0.0.1',
 			'port' => '11211',
@@ -71,6 +72,7 @@ class SessionTest extends PHPUnit_Framework_TestCase
 
 	public function testSessionLibmemcached()
 	{
+return;
 		$session = new Phalcon\Session\Adapter\Libmemcached(array(
 			'servers' => array(
 				array(
