@@ -639,6 +639,7 @@ static PHP_GSHUTDOWN_FUNCTION(phalcon)
 
 static ZEND_MODULE_POST_ZEND_DEACTIVATE_D(phalcon)
 {
+/*
 	TSRMLS_FETCH();
 
 #ifndef PHALCON_RELEASE
@@ -669,7 +670,7 @@ static ZEND_MODULE_POST_ZEND_DEACTIVATE_D(phalcon)
 		Z_ADDREF_P(pg->z_one);
 		ZVAL_LONG(pg->z_one, 1);
 	}
-
+*/
 	return SUCCESS;
 }
 
