@@ -211,6 +211,15 @@ zend_class_entry *phalcon_annotations_adapterinterface_ce;
 
 PHALCON_INIT_CLASS(Phalcon_Annotations_AdapterInterface);
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_annotations_adapterinterface_read, 0, 0, 1)
+	ZEND_ARG_INFO(0, key)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_annotations_adapterinterface_write, 0, 0, 2)
+	ZEND_ARG_INFO(0, key)
+	ZEND_ARG_INFO(0, data)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_annotations_adapterinterface_setreader, 0, 0, 1)
 	ZEND_ARG_INFO(0, reader)
 ZEND_END_ARG_INFO()
@@ -898,6 +907,18 @@ zend_class_entry *phalcon_config_adapter_php_ce;
 PHALCON_INIT_CLASS(Phalcon_Config_Adapter_Php);
 
 #endif /* PHALCON_CONFIG_ADAPTER_PHP_H */
+
+
+#ifndef PHALCON_CONFIG_ADAPTER_YAML_H
+#define PHALCON_CONFIG_ADAPTER_YAML_H
+
+#include "php_phalcon.h"
+
+zend_class_entry *phalcon_config_adapter_yaml_ce;
+
+PHALCON_INIT_CLASS(Phalcon_Config_Adapter_Yaml);
+
+#endif /* PHALCON_CONFIG_ADAPTER_YAML_H */
 
 
 #ifndef PHALCON_CONFIG_EXCEPTION_H
@@ -1679,6 +1700,8 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_db_resultinterface_setfetchmode, 0, 0, 1)
 	ZEND_ARG_INFO(0, fetchMode)
+	ZEND_ARG_INFO(0, fetchArg1)
+	ZEND_ARG_INFO(0, fetchArg2)
 ZEND_END_ARG_INFO()
 
 #endif /* PHALCON_DB_RESULTINTERFACE_H */
@@ -5409,6 +5432,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_urlinterface_get, 0, 0, 0)
 	ZEND_ARG_INFO(0, uri)
 	ZEND_ARG_INFO(0, args)
+	ZEND_ARG_INFO(0, local)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_urlinterface_path, 0, 0, 0)
@@ -5726,6 +5750,8 @@ PHALCON_INIT_CLASS(Phalcon_Paginator_Exception);
 
 #endif /* PHALCON_PAGINATOR_EXCEPTION_H */
 
+
+
 #ifndef PSR_LOG_ABSTRACTLOGGER_H
 #define PSR_LOG_ABSTRACTLOGGER_H
 
@@ -5745,6 +5771,8 @@ PHP_FUNCTION(Psr_Log_Info);
 PHP_FUNCTION(Psr_Log_Debug);
 
 #endif /* PSR_LOG_ABSTRACTLOGGER_H */
+
+
 #ifndef PSR_LOG_INVALIDARGUMENTEXCEPTION_H
 #define PSR_LOG_INVALIDARGUMENTEXCEPTION_H
 
@@ -5800,6 +5828,8 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_psr_log_loggerinterface_logspecialized, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 #endif /* PSR_LOG_LOGGERINTERFACE_H */
+
+
 #ifndef PSR_LOG_LOGGERTRAIT_H
 #define PSR_LOG_LOGGERTRAIT_H
 
@@ -5810,6 +5840,8 @@ zend_class_entry *psr_log_loggertrait_ce;
 PHALCON_INIT_CLASS(Psr_Log_LoggerTrait);
 
 #endif /* PSR_LOG_LOGGERTRAIT_H */
+
+
 #ifndef PSR_LOG_LOGLEVEL_H
 #define PSR_LOG_LOGLEVEL_H
 
@@ -5829,6 +5861,8 @@ zend_class_entry *psr_log_loglevel_ce;
 PHALCON_INIT_CLASS(Psr_Log_LogLevel);
 
 #endif /* PSR_LOG_LOGLEVEL_H */
+
+
 #ifndef PSR_LOG_NULLLOGGER_H
 #define PSR_LOG_NULLLOGGER_H
 
@@ -6042,6 +6076,30 @@ PHALCON_INIT_CLASS(Phalcon_Session_Exception);
 #endif /* PHALCON_SESSION_EXCEPTION_H */
 
 
+#ifndef PHALCON_SESSION_ADAPTER_MEMCACHE_H
+#define PHALCON_SESSION_ADAPTER_MEMCACHE_H
+
+#include "php_phalcon.h"
+
+zend_class_entry *phalcon_session_adapter_memcache_ce;
+
+PHALCON_INIT_CLASS(Phalcon_Session_Adapter_Memcache);
+
+#endif /* PHALCON_SESSION_ADAPTER_MEMCACHE_H */
+
+
+#ifndef PHALCON_SESSION_ADAPTER_LIBMEMCACHED_H
+#define PHALCON_SESSION_ADAPTER_LIBMEMCACHED_H
+
+#include "php_phalcon.h"
+
+zend_class_entry *phalcon_session_adapter_libmemcached_ce;
+
+PHALCON_INIT_CLASS(Phalcon_Session_Adapter_Libmemcached);
+
+#endif /* PHALCON_SESSION_ADAPTER_LIBMEMCACHED_H */
+
+
 
 #ifndef PHALCON_TAG_H
 #define PHALCON_TAG_H
@@ -6140,6 +6198,18 @@ PHALCON_INIT_CLASS(Phalcon_Translate_Exception);
 #endif /* PHALCON_TRANSLATE_EXCEPTION_H */
 
 
+#ifndef PHALCON_TRANSLATE_ADAPTER_GETTEXT_H
+#define PHALCON_TRANSLATE_ADAPTER_GETTEXT_H
+
+#include "php_phalcon.h"
+
+zend_class_entry *phalcon_translate_adapter_gettext_ce;
+
+PHALCON_INIT_CLASS(Phalcon_Translate_Adapter_Gettext);
+
+#endif /* PHALCON_TRANSLATE_ADAPTER_GETTEXT_H */
+
+
 
 #ifndef PHALCON_TEXT_H
 #define PHALCON_TEXT_H
@@ -6169,7 +6239,7 @@ zend_class_entry *phalcon_validation_ce;
 
 PHALCON_INIT_CLASS(Phalcon_Validation);
 
-static int phalcon_validation_getdefaultmessage_helper(const zend_class_entry *ce, zval *return_value, zval *this_ptr, const char *type TSRMLS_DC);
+static int phalcon_validation_getdefaultmessage_helper(const zend_class_entry *ce, zval **return_value_ptr, zval *this_ptr, const char *type TSRMLS_DC);
 
 #endif /* PHALCON_VALIDATION_H */
 
@@ -6200,6 +6270,34 @@ static zval* phalcon_validation_message_construct_helper(zval *message, zval *fi
 #endif /* PHALCON_VALIDATION_MESSAGE_H */
 
 
+#ifndef PHALCON_VALIDATION_MESSAGEINTERFACE_H
+#define PHALCON_VALIDATION_MESSAGEINTERFACE_H
+
+#include "php_phalcon.h"
+
+zend_class_entry *phalcon_validation_messageinterface_ce;
+
+PHALCON_INIT_CLASS(Phalcon_Validation_MessageInterface);
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_validation_messageinterface_settype, 0, 0, 1)
+	ZEND_ARG_INFO(0, type)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_validation_messageinterface_setcode, 0, 0, 1)
+	ZEND_ARG_INFO(0, code)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_validation_messageinterface_setmessage, 0, 0, 1)
+	ZEND_ARG_INFO(0, message)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_validation_messageinterface_setfield, 0, 0, 1)
+	ZEND_ARG_INFO(0, field)
+ZEND_END_ARG_INFO()
+
+#endif /* PHALCON_VALIDATION_MESSAGEINTERFACE_H */
+
+
 #ifndef PHALCON_VALIDATION_MESSAGE_GROUP_H
 #define PHALCON_VALIDATION_MESSAGE_GROUP_H
 
@@ -6223,7 +6321,7 @@ zend_class_entry *phalcon_validation_validator_ce;
 
 PHALCON_INIT_CLASS(Phalcon_Validation_Validator);
 
-static int phalcon_validation_validator_getoption_helper(const zend_class_entry *ce, zval *result, zval *this_ptr, const char *option TSRMLS_DC);
+static int phalcon_validation_validator_getoption_helper(const zend_class_entry *ce, zval **result, zval *this_ptr, const char *option TSRMLS_DC);
 
 static inline int phalcon_validation_validator_isempty_helper(const zval *v)
 {

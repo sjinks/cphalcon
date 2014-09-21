@@ -74,6 +74,8 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 		$this->_executeTestsNormal($di);
 		$this->_executeTestsRenamed($di);
 		$this->_executeTestsFromInput($di);
+		$this->_executeTestIssues2131($di);
+		$this->_executeJoinTests($di, "mysql");
 	}
 
 	public function testModelsPostgresql()
@@ -94,6 +96,8 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 		$this->_executeTestsNormal($di);
 		$this->_executeTestsRenamed($di);
 		$this->_executeTestsFromInput($di);
+		$this->_executeTestIssues2131($di);
+		$this->_executeJoinTests($di, "postgresql");
 	}
 
 	public function testModelsSQLite()
@@ -114,11 +118,13 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 		$this->_executeTestsNormal($di);
 		$this->_executeTestsRenamed($di);
 		$this->_executeTestsFromInput($di);
+		$this->_executeTestIssues2131($di);
+		$this->_executeJoinTests($di, "sqlite");
 	}
 
 	protected function _executeTestsNormal($di)
 	{
-
+		//Where
 		$personas = Personas::query()->where("estado='I'")->execute();
 		$people = People::find("estado='I'");
 		$this->assertEquals(count($personas), count($people));
@@ -141,7 +147,7 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 		$somePeople = $people->getFirst();
 		$this->assertEquals($somePersona->cedula, $somePeople->cedula);
 
-		//Order + limit
+		//Where + Order + limit
 		$personas = Personas::query()
 			->where("estado='A'")
 			->orderBy("nombres")
@@ -158,7 +164,7 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 		$somePeople = $people->getFirst();
 		$this->assertEquals($somePersona->cedula, $somePeople->cedula);
 
-		//Bind params + Limit
+		//Where with bind params + order + Limit
 		$personas = Personas::query()
 			->where("estado=?1")
 			->bind(array(1 => "A"))
@@ -178,7 +184,7 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 		$somePeople = $people->getFirst();
 		$this->assertEquals($somePersona->cedula, $somePeople->cedula);
 
-		//Limit + Offset
+		//Where with bind params + order + limit + Offset
 		$personas = Personas::query()
 			->where("estado=?1")
 			->bind(array(1 => "A"))
@@ -198,6 +204,7 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 		$somePeople = $people->getFirst();
 		$this->assertEquals($somePersona->cedula, $somePeople->cedula);
 
+		//Where with named bind params + order + limit 
 		$personas = Personas::query()
 			->where("estado=:estado:")
 			->bind(array("estado" => "A"))
@@ -216,7 +223,59 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 		$somePersona = $personas->getFirst();
 		$somePeople = $people->getFirst();
 		$this->assertEquals($somePersona->cedula, $somePeople->cedula);
+	}
 
+	protected function _executeJoinTests($di, $dbtype)
+	{
+		//Left join with Simple resultset
+		$robotparts = RobotsParts::query()
+			->columns("Robots.id, Robots.name, RobotsParts.id robotpart_id")
+			->leftJoin("Robots", "Robots.id = RobotsParts.robots_id")
+			->execute();
+		$this->assertTrue(is_object($robotparts));
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Simple', $robotparts);
+		$this->assertNotNull($robotparts->getFirst()->id);
+		$this->assertNotNull($robotparts->getFirst()->name);
+		$this->assertNotNull($robotparts->getFirst()->robotpart_id);
+
+		//Two left joins with Simple resultset
+		$robotparts = RobotsParts::query()
+			->columns("RobotsParts.id, r.id robot_id, p.id part_id")
+			->leftJoin("Robots", "r.id = RobotsParts.robots_id", "r")
+			->leftJoin("Parts", "p.id = RobotsParts.parts_id", "p")
+			->execute();
+		$this->assertTrue(is_object($robotparts));
+		$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Simple', $robotparts);
+		$this->assertNotNull($robotparts->getFirst()->id);
+		$this->assertNotNull($robotparts->getFirst()->robot_id);
+		$this->assertNotNull($robotparts->getFirst()->part_id);
+
+		//Right join not supported in sqlite
+		if ($dbtype != "sqlite")
+		{
+			//Right join with Simple resultset
+			$robotparts = RobotsParts::query()
+				->columns("Robots.id, Robots.name, RobotsParts.id robotpart_id")
+				->rightJoin("Robots", "Robots.id = RobotsParts.robots_id")
+				->execute();
+			$this->assertTrue(is_object($robotparts));
+			$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Simple', $robotparts);
+			$this->assertNotNull($robotparts->getFirst()->id);
+			$this->assertNotNull($robotparts->getFirst()->name);
+			$this->assertNotNull($robotparts->getFirst()->robotpart_id);
+
+			//Two right joins with Simple resultset
+			$robotparts = RobotsParts::query()
+				->columns("RobotsParts.id, r.id robot_id, p.id part_id")
+				->rightJoin("Robots", "r.id = RobotsParts.robots_id", "r")
+				->rightJoin("Parts", "p.id = RobotsParts.parts_id", "p")
+				->execute();
+			$this->assertTrue(is_object($robotparts));
+			$this->assertInstanceOf('Phalcon\Mvc\Model\Resultset\Simple', $robotparts);
+			$this->assertNotNull($robotparts->getFirst()->id);
+			$this->assertNotNull($robotparts->getFirst()->robot_id);
+			$this->assertNotNull($robotparts->getFirst()->part_id);
+		}
 	}
 
 	protected function _executeTestsRenamed($di)
@@ -328,6 +387,25 @@ class ModelsCriteriaTest extends PHPUnit_Framework_TestCase
 				'name' => '%ol%',
 			)
 		));
+	}
+	
+	public function _executeTestIssues2131($di)
+	{
+		$di->set('modelsCache', function(){
+			$frontCache = new Phalcon\Cache\Frontend\Data();
+			$modelsCache = new Phalcon\Cache\Backend\File($frontCache, array(
+				'cacheDir' => 'unit-tests/cache/'
+			));
+
+			$modelsCache->delete("cache-2131");
+			return $modelsCache;
+		}, true);
+
+		$personas = Personas::query()->where("estado='I'")->cache(array("key" => "cache-2131"))->execute();
+		$this->assertTrue($personas->isFresh());
+
+		$personas = Personas::query()->where("estado='I'")->cache(array("key" => "cache-2131"))->execute();
+		$this->assertFalse($personas->isFresh());
 	}
 
 }

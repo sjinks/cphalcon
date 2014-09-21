@@ -890,19 +890,19 @@ class ViewEnginesVoltTest extends PHPUnit_Framework_TestCase
 
 		//Phalcon\Tag helpers
 		$compilation = $volt->compileString("{{ link_to('hello', 'some-link') }}");
-		$this->assertEquals($compilation, '<?php echo Phalcon\Tag::linkTo(array(\'hello\', \'some-link\')); ?>');
+		$this->assertEquals($compilation, '<?php echo $this->tag->linkTo(array(\'hello\', \'some-link\')); ?>');
 
 		$compilation = $volt->compileString("{{ form('action': 'save/products', 'method': 'post') }}");
-		$this->assertEquals($compilation, '<?php echo Phalcon\Tag::form(array(\'action\' => \'save/products\', \'method\' => \'post\')); ?>');
+		$this->assertEquals($compilation, '<?php echo $this->tag->form(array(\'action\' => \'save/products\', \'method\' => \'post\')); ?>');
 
 		$compilation = $volt->compileString("{{ stylesheet_link(config.cdn.css.bootstrap, config.cdn.local) }}");
-		$this->assertEquals($compilation, '<?php echo Phalcon\Tag::stylesheetLink($config->cdn->css->bootstrap, $config->cdn->local); ?>');
+		$this->assertEquals($compilation, '<?php echo $this->tag->stylesheetLink($config->cdn->css->bootstrap, $config->cdn->local); ?>');
 
 		$compilation = $volt->compileString("{{ javascript_include('js/some.js') }}");
-		$this->assertEquals($compilation, '<?php echo Phalcon\Tag::javascriptInclude(\'js/some.js\'); ?>');
+		$this->assertEquals($compilation, '<?php echo $this->tag->javascriptInclude(\'js/some.js\'); ?>');
 
 		$compilation = $volt->compileString("{{ image('img/logo.png', 'width': 80) }}");
-		$this->assertEquals($compilation, "<?php echo Phalcon\Tag::image(array('img/logo.png', 'width' => 80)); ?>");
+		$this->assertEquals($compilation, "<?php echo \$this->tag->image(array('img/logo.png', 'width' => 80)); ?>");
 
 		//Filters
 		$compilation = $volt->compileString('{{ "hello"|e }}');
@@ -1303,7 +1303,7 @@ Clearly, the song is: <?php echo $this->getContent(); ?>.
 		$view->setRenderLevel(Phalcon\Mvc\View::LEVEL_LAYOUT);
 		$view->render('test10', 'index');
 		$view->finish();
-		$this->assertEquals($view->getContent(), 'Clearly, the song is: Hello Rock n roll!.'."\n");
+		$this->assertEquals($view->getContent(), 'Clearly, the song is: Hello Rock n roll!.'.PHP_EOL);
 
 		//Refreshing generated view
 		file_put_contents('unit-tests/views/test10/other.volt', '{{song}} {{song}}');
@@ -1320,7 +1320,7 @@ Clearly, the song is: <?php echo $this->getContent(); ?>.
 		$view->setRenderLevel(Phalcon\Mvc\View::LEVEL_LAYOUT);
 		$view->render('test10', 'other');
 		$view->finish();
-		$this->assertEquals($view->getContent(), 'Clearly, the song is: Le Song Le Song.'."\n");
+		$this->assertEquals($view->getContent(), 'Clearly, the song is: Le Song Le Song.'.PHP_EOL);
 
 		//Change the view
 		file_put_contents('unit-tests/views/test10/other.volt', 'Two songs: {{song}} {{song}}');
@@ -1329,7 +1329,7 @@ Clearly, the song is: <?php echo $this->getContent(); ?>.
 		$view->setRenderLevel(Phalcon\Mvc\View::LEVEL_LAYOUT);
 		$view->render('test10', 'other');
 		$view->finish();
-		$this->assertEquals($view->getContent(), 'Clearly, the song is: Two songs: Le Song Le Song.'."\n");
+		$this->assertEquals($view->getContent(), 'Clearly, the song is: Two songs: Le Song Le Song.'.PHP_EOL);
 
 	}
 

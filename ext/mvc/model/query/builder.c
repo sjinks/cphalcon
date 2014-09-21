@@ -1,4 +1,3 @@
-
 /*
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
@@ -543,7 +542,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Query_Builder, getFrom){
 }
 
 /**
- * Adds a INNER join to the query
+ * Adds a join to the query
  *
  *<code>
  *	$builder->join('Robots');
@@ -595,13 +594,11 @@ PHP_METHOD(Phalcon_Mvc_Model_Query_Builder, join){
  *	$builder->innerJoin('Robots');
  *	$builder->innerJoin('Robots', 'r.id = RobotsParts.robots_id');
  *	$builder->innerJoin('Robots', 'r.id = RobotsParts.robots_id', 'r');
- *	$builder->innerJoin('Robots', 'r.id = RobotsParts.robots_id', 'r', 'LEFT');
  *</code>
  *
  * @param string $model
  * @param string $conditions
  * @param string $alias
- * @param string $type
  * @return Phalcon\Mvc\Model\Query\Builder
  */
 PHP_METHOD(Phalcon_Mvc_Model_Query_Builder, innerJoin){
@@ -1399,7 +1396,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Query_Builder, getPhql){
 	zval *join = NULL, *join_model = NULL, *join_conditions = NULL, *join_alias = NULL;
 	zval *join_type = NULL, *group, *group_items, *group_item = NULL;
 	zval *escaped_item = NULL, *joined_items = NULL, *having, *order;
-	zval *order_items, *order_item = NULL, *limit, *number;
+	zval *order_items, *order_item = NULL, *limit, *number, *for_update;
 	HashTable *ah0, *ah1, *ah2, *ah3, *ah4, *ah5;
 	HashPosition hp0, hp1, hp2, hp3, hp4, hp5;
 	zval **hd;
@@ -1756,6 +1753,14 @@ PHP_METHOD(Phalcon_Mvc_Model_Query_Builder, getPhql){
 			} else {
 				if (phalcon_memnstr_str(group, SL("."))) {
 					PHALCON_SCONCAT_SV(phql, " GROUP BY ", group);
+				} else if (phalcon_memnstr_str(group, SL(","))) {
+					PHALCON_INIT_VAR(group_items);
+					phalcon_fast_explode_str(group_items, SL(", "), group);
+
+					PHALCON_INIT_VAR(joined_items);
+					phalcon_fast_join_str(joined_items, SL("], ["), group_items TSRMLS_CC);
+
+					PHALCON_SCONCAT_SVS(phql, " GROUP BY [", joined_items, "]");
 				} else {
 					PHALCON_SCONCAT_SVS(phql, " GROUP BY [", group, "]");
 				}
@@ -1777,7 +1782,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Query_Builder, getPhql){
 	 */
 	PHALCON_OBS_VAR(order);
 	phalcon_read_property_this(&order, this_ptr, SL("_order"), PH_NOISY TSRMLS_CC);
-	if (Z_TYPE_P(order) != IS_NULL) {
+	if (PHALCON_IS_NOT_EMPTY(order)) {
 		if (Z_TYPE_P(order) == IS_ARRAY) { 
 	
 			PHALCON_INIT_VAR(order_items);
@@ -1837,6 +1842,14 @@ PHP_METHOD(Phalcon_Mvc_Model_Query_Builder, getPhql){
 				PHALCON_SCONCAT_SV(phql, " OFFSET ", offset);
 			}
 		}
+	}
+	
+	/** 
+	 * Process FOR UPDATE clause
+	 */
+	for_update = phalcon_fetch_nproperty_this(this_ptr, SL("_forUpdate"), PH_NOISY TSRMLS_CC);
+	if (zend_is_true(for_update)) {
+		phalcon_concat_self_str(&phql, SL(" FOR UPDATE") TSRMLS_CC);
 	}
 	
 	RETURN_CTOR(phql);

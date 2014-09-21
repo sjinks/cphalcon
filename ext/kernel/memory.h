@@ -23,6 +23,9 @@
 #include "php_phalcon.h"
 #include "kernel/main.h"
 
+void phalcon_initialize_memory(zend_phalcon_globals *phalcon_globals_ptr TSRMLS_DC);
+void phalcon_deinitialize_memory(TSRMLS_D);
+
 /* Memory Frames */
 #ifndef PHALCON_RELEASE
 void phalcon_dump_memory_frame(phalcon_memory_entry *active_memory TSRMLS_DC);
@@ -35,6 +38,19 @@ int phalcon_memory_restore_stack(const char *func TSRMLS_DC);
 #define PHALCON_MM_GROW()       phalcon_memory_grow_stack(__func__ TSRMLS_CC)
 #define PHALCON_MM_RESTORE()    phalcon_memory_restore_stack(__func__ TSRMLS_CC)
 
+void phalcon_memory_observe(zval **var, const char *func TSRMLS_DC) /* PHALCON_ATTR_NONNULL */;
+void phalcon_memory_alloc(zval **var, const char *func TSRMLS_DC);
+void phalcon_memory_alloc_pnull(zval **var, const char *func TSRMLS_DC);
+
+#define PHALCON_MEMORY_ALLOC(z) \
+	phalcon_memory_alloc((z), __func__ TSRMLS_CC)
+
+#define PHALCON_MEMORY_ALLOC_PNULL(z) \
+	phalcon_memory_alloc_pnull((z), __func__ TSRMLS_CC)
+
+#define PHALCON_MEMORY_OBSERVE(z) \
+	phalcon_memory_observe((z), __func__ TSRMLS_CC)
+
 #else
 void phalcon_memory_grow_stack(TSRMLS_D);
 int phalcon_memory_restore_stack(TSRMLS_D);
@@ -42,12 +58,22 @@ int phalcon_memory_restore_stack(TSRMLS_D);
 #define PHALCON_MM_GROW()       phalcon_memory_grow_stack(TSRMLS_C)
 #define PHALCON_MM_RESTORE()    phalcon_memory_restore_stack(TSRMLS_C)
 
-#endif
-
 void phalcon_memory_observe(zval **var TSRMLS_DC) /* PHALCON_ATTR_NONNULL */;
-void phalcon_memory_remove(zval **var TSRMLS_DC) PHALCON_ATTR_NONNULL;
 void phalcon_memory_alloc(zval **var TSRMLS_DC);
 void phalcon_memory_alloc_pnull(zval **var TSRMLS_DC);
+
+#define PHALCON_MEMORY_ALLOC(z) \
+	phalcon_memory_alloc((z) TSRMLS_CC)
+
+#define PHALCON_MEMORY_ALLOC_PNULL(z) \
+	phalcon_memory_alloc_pnull((z) TSRMLS_CC)
+
+#define PHALCON_MEMORY_OBSERVE(z) \
+	phalcon_memory_observe((z) TSRMLS_CC)
+
+#endif
+
+void phalcon_memory_remove(zval **var TSRMLS_DC) PHALCON_ATTR_NONNULL;
 
 int phalcon_clean_restore_stack(TSRMLS_D);
 
@@ -69,7 +95,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 	} while (0)
 
 #define PHALCON_INIT_VAR(z) \
-	phalcon_memory_alloc(&z TSRMLS_CC)
+	PHALCON_MEMORY_ALLOC(&z)
 
 #define PHALCON_INIT_NVAR(z)                          \
 	do {                                              \
@@ -86,7 +112,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 			ZVAL_NULL(z);                             \
 		}                                             \
 		else {                                        \
-			phalcon_memory_alloc(&z TSRMLS_CC);       \
+			PHALCON_MEMORY_ALLOC(&z);                 \
 		}                                             \
 	} while (0)
 
@@ -105,7 +131,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 			ZVAL_NULL(z);                             \
 		}                                             \
 		else {                                        \
-			phalcon_memory_alloc_pnull(&z TSRMLS_CC); \
+			PHALCON_MEMORY_ALLOC_PNULL(&z);           \
 		}                                             \
 	} while (0)
 
@@ -117,7 +143,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 			}                                         \
 		}                                             \
 		else {                                        \
-			phalcon_memory_observe(&d TSRMLS_CC);     \
+			PHALCON_MEMORY_OBSERVE(&d);               \
 		}                                             \
 		Z_ADDREF_P(v);                                \
 		d = v;                                        \
@@ -131,7 +157,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 			}                                         \
 		}                                             \
 		else {                                        \
-			phalcon_memory_observe(&d TSRMLS_CC);     \
+			PHALCON_MEMORY_OBSERVE(&d);               \
 		}                                             \
 		ALLOC_ZVAL(d);                                \
 		*d = *v;                                      \
@@ -142,7 +168,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 
 /* */
 #define PHALCON_OBS_VAR(z) \
-	phalcon_memory_observe(&z TSRMLS_CC)
+	PHALCON_MEMORY_OBSERVE(&z)
 
 #define PHALCON_OBS_NVAR(z)                           \
 	do {                                              \
@@ -156,7 +182,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 			}                                         \
 		}                                             \
 		else {                                        \
-			phalcon_memory_observe(&z TSRMLS_CC);     \
+			PHALCON_MEMORY_OBSERVE(&z);               \
 		}                                             \
 	} while (0)
 
@@ -169,7 +195,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 				*tmp_ = NULL;                              \
 			}                                              \
 			else {                                         \
-				phalcon_memory_observe((ppzv) TSRMLS_CC);  \
+				PHALCON_MEMORY_OBSERVE((ppzv));            \
 			}                                              \
 		}                                                  \
 	} while (0)
@@ -181,7 +207,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 			z = NULL;                                 \
 		}                                             \
 		else {                                        \
-			phalcon_memory_observe(&z TSRMLS_CC);     \
+			PHALCON_MEMORY_OBSERVE(&z);               \
 		}                                             \
 	} while (0)
 
@@ -201,7 +227,7 @@ void phalcon_copy_ctor(zval *destiny, zval *origin) PHALCON_ATTR_NONNULL;
 #define PHALCON_SEPARATE_PARAM(z)                     \
 	do {                                              \
 		zval *orig_ptr = z;                           \
-		phalcon_memory_observe(&z TSRMLS_CC);         \
+		PHALCON_MEMORY_OBSERVE(&z);                   \
 		ALLOC_ZVAL(z);                                \
 		*z = *orig_ptr;                               \
 		zval_copy_ctor(z);                            \

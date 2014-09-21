@@ -972,7 +972,7 @@ PHP_METHOD(Phalcon_Db_Dialect_Oracle, select){
 	}
 
 	PHALCON_INIT_VAR(sql);
-	if (phalcon_array_isset_string_fetch(&distinct, definition, SS("definition"))) {
+	if (phalcon_array_isset_string_fetch(&distinct, definition, SS("distinct"))) {
 		assert(Z_TYPE_P(distinct) == IS_LONG);
 		if (Z_LVAL_P(distinct) == 0) {
 			ZVAL_STRING(sql, "SELECT ALL ", 1);
@@ -987,6 +987,8 @@ PHP_METHOD(Phalcon_Db_Dialect_Oracle, select){
 	else {
 		ZVAL_STRING(sql, "SELECT ", 1);
 	}
+
+	PHALCON_SCONCAT_VSV(sql, columns_sql, " FROM ", tables_sql);
 
 	/**
 	 * Check for joins
@@ -1095,17 +1097,17 @@ PHP_METHOD(Phalcon_Db_Dialect_Oracle, select){
 		PHALCON_INIT_VAR(group_clause);
 		PHALCON_CONCAT_SV(group_clause, " GROUP BY ", group_sql);
 		phalcon_concat_self(&sql, group_clause TSRMLS_CC);
+	}
 
-		/**
-		 * Check for a HAVING clause
-		 */
-		if (phalcon_array_isset_string(definition, SS("having"))) {
-			PHALCON_OBS_VAR(having_conditions);
-			phalcon_array_fetch_string(&having_conditions, definition, SL("having"), PH_NOISY);
+	/**
+	 * Check for a HAVING clause
+	 */
+	if (phalcon_array_isset_string(definition, SS("having"))) {
+		PHALCON_OBS_VAR(having_conditions);
+		phalcon_array_fetch_string(&having_conditions, definition, SL("having"), PH_NOISY);
 
-			PHALCON_CALL_METHOD(&having_expression, this_ptr, "getsqlexpression", having_conditions, escape_char);
-			PHALCON_SCONCAT_SV(sql, " HAVING ", having_expression);
-		}
+		PHALCON_CALL_METHOD(&having_expression, this_ptr, "getsqlexpression", having_conditions, escape_char);
+		PHALCON_SCONCAT_SV(sql, " HAVING ", having_expression);
 	}
 
 	/**

@@ -87,6 +87,7 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, getOrder);
 PHP_METHOD(Phalcon_Mvc_Model_Criteria, getParams);
 PHP_METHOD(Phalcon_Mvc_Model_Criteria, fromInput);
 PHP_METHOD(Phalcon_Mvc_Model_Criteria, execute);
+PHP_METHOD(Phalcon_Mvc_Model_Criteria, cache);
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_model_criteria_innerjoin, 0, 0, 1)
 	ZEND_ARG_INFO(0, model)
@@ -104,6 +105,10 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_model_criteria_rightjoin, 0, 0, 1)
 	ZEND_ARG_INFO(0, model)
 	ZEND_ARG_INFO(0, conditions)
 	ZEND_ARG_INFO(0, alias)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_mvc_model_criteria_cache, 0, 0, 1)
+	ZEND_ARG_INFO(0, option)
 ZEND_END_ARG_INFO()
 
 static const zend_function_entry phalcon_mvc_model_criteria_method_entry[] = {
@@ -140,6 +145,7 @@ static const zend_function_entry phalcon_mvc_model_criteria_method_entry[] = {
 	PHP_ME(Phalcon_Mvc_Model_Criteria, getParams, NULL, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Mvc_Model_Criteria, fromInput, arginfo_phalcon_mvc_model_criteriainterface_frominput, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(Phalcon_Mvc_Model_Criteria, execute, NULL, ZEND_ACC_PUBLIC)
+	PHP_ME(Phalcon_Mvc_Model_Criteria, cache, arginfo_phalcon_mvc_model_criteria_cache, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 
@@ -306,8 +312,8 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, columns){
  */
 PHP_METHOD(Phalcon_Mvc_Model_Criteria, join){
 
-	zval *model, *conditions = NULL, *alias = NULL, *type = NULL, *join, *params;
-	zval *current_joins, *merged_joins = NULL;
+	zval *model, *conditions = NULL, *alias = NULL, *type = NULL, *new_join, *params;
+	zval *current_joins, *merged_joins = NULL, *new_join_array = NULL;
 
 	PHALCON_MM_GROW();
 
@@ -325,29 +331,33 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, join){
 		type = PHALCON_GLOBAL(z_null);
 	}
 	
-	PHALCON_INIT_VAR(join);
-	array_init_size(join, 4);
-	phalcon_array_append(&join, model, 0);
-	phalcon_array_append(&join, conditions, 0);
-	phalcon_array_append(&join, alias, 0);
-	phalcon_array_append(&join, type, 0);
+	PHALCON_INIT_VAR(new_join);
+	array_init_size(new_join, 4);
+	phalcon_array_append(&new_join, model, 0);
+	phalcon_array_append(&new_join, conditions, 0);
+	phalcon_array_append(&new_join, alias, 0);
+	phalcon_array_append(&new_join, type, 0);
 	
 	PHALCON_OBS_VAR(params);
 	phalcon_read_property_this(&params, this_ptr, SL("_params"), PH_NOISY TSRMLS_CC);
 	if (phalcon_array_isset_string(params, SS("joins"))) {
-	
+		
+		PHALCON_INIT_VAR(new_join_array);
+		array_init_size(new_join_array, 1);
+		phalcon_array_append(&new_join_array, new_join, 0);
+
 		PHALCON_OBS_VAR(current_joins);
 		phalcon_array_fetch_string(&current_joins, params, SL("joins"), PH_NOISY);
 		if (Z_TYPE_P(current_joins) == IS_ARRAY) { 
 			PHALCON_INIT_VAR(merged_joins);
-			phalcon_fast_array_merge(merged_joins, &current_joins, &join TSRMLS_CC);
+			phalcon_fast_array_merge(merged_joins, &current_joins, &new_join_array TSRMLS_CC);
 		} else {
-			PHALCON_CPY_WRT(merged_joins, join);
+			PHALCON_CPY_WRT(merged_joins, new_join_array);
 		}
 	} else {
 		PHALCON_INIT_NVAR(merged_joins);
 		array_init_size(merged_joins, 1);
-		phalcon_array_append(&merged_joins, join, 0);
+		phalcon_array_append(&merged_joins, new_join, 0);
 	}
 	
 	phalcon_update_property_array_string(this_ptr, SL("_params"), SS("joins"), merged_joins TSRMLS_CC);
@@ -372,8 +382,8 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, join){
  */
 PHP_METHOD(Phalcon_Mvc_Model_Criteria, innerJoin){
 
-	zval *model, *conditions = NULL, *alias = NULL, *type, *join, *params;
-	zval *current_joins, *merged_joins = NULL;
+	zval *model, *conditions = NULL, *alias = NULL, *type, *new_join, *params;
+	zval *current_joins, *merged_joins = NULL, *new_join_array = NULL;
 
 	PHALCON_MM_GROW();
 
@@ -390,29 +400,33 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, innerJoin){
 	PHALCON_INIT_VAR(type);
 	ZVAL_STRING(type, "INNER", 1);
 	
-	PHALCON_INIT_VAR(join);
-	array_init_size(join, 4);
-	phalcon_array_append(&join, model, 0);
-	phalcon_array_append(&join, conditions, 0);
-	phalcon_array_append(&join, alias, 0);
-	phalcon_array_append(&join, type, 0);
+	PHALCON_INIT_VAR(new_join);
+	array_init_size(new_join, 4);
+	phalcon_array_append(&new_join, model, 0);
+	phalcon_array_append(&new_join, conditions, 0);
+	phalcon_array_append(&new_join, alias, 0);
+	phalcon_array_append(&new_join, type, 0);
 	
 	PHALCON_OBS_VAR(params);
 	phalcon_read_property_this(&params, this_ptr, SL("_params"), PH_NOISY TSRMLS_CC);
 	if (phalcon_array_isset_string(params, SS("joins"))) {
-	
+		
+		PHALCON_INIT_VAR(new_join_array);
+		array_init_size(new_join_array, 1);
+		phalcon_array_append(&new_join_array, new_join, 0);
+
 		PHALCON_OBS_VAR(current_joins);
 		phalcon_array_fetch_string(&current_joins, params, SL("joins"), PH_NOISY);
 		if (Z_TYPE_P(current_joins) == IS_ARRAY) { 
 			PHALCON_INIT_VAR(merged_joins);
-			phalcon_fast_array_merge(merged_joins, &current_joins, &join TSRMLS_CC);
+			phalcon_fast_array_merge(merged_joins, &current_joins, &new_join_array TSRMLS_CC);
 		} else {
-			PHALCON_CPY_WRT(merged_joins, join);
+			PHALCON_CPY_WRT(merged_joins, new_join_array);
 		}
 	} else {
 		PHALCON_INIT_NVAR(merged_joins);
 		array_init_size(merged_joins, 1);
-		phalcon_array_append(&merged_joins, join, PH_SEPARATE);
+		phalcon_array_append(&merged_joins, new_join, PH_SEPARATE);
 	}
 	
 	phalcon_update_property_array_string(this_ptr, SL("_params"), SS("joins"), merged_joins TSRMLS_CC);
@@ -434,8 +448,8 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, innerJoin){
  */
 PHP_METHOD(Phalcon_Mvc_Model_Criteria, leftJoin){
 
-	zval *model, *conditions = NULL, *alias = NULL, *type, *join, *params;
-	zval *current_joins, *merged_joins = NULL;
+	zval *model, *conditions = NULL, *alias = NULL, *type, *new_join, *params;
+	zval *current_joins, *merged_joins = NULL, *new_join_array = NULL;
 
 	PHALCON_MM_GROW();
 
@@ -452,29 +466,33 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, leftJoin){
 	PHALCON_INIT_VAR(type);
 	ZVAL_STRING(type, "LEFT", 1);
 	
-	PHALCON_INIT_VAR(join);
-	array_init_size(join, 4);
-	phalcon_array_append(&join, model, 0);
-	phalcon_array_append(&join, conditions, 0);
-	phalcon_array_append(&join, alias, 0);
-	phalcon_array_append(&join, type, 0);
+	PHALCON_INIT_VAR(new_join);
+	array_init_size(new_join, 4);
+	phalcon_array_append(&new_join, model, 0);
+	phalcon_array_append(&new_join, conditions, 0);
+	phalcon_array_append(&new_join, alias, 0);
+	phalcon_array_append(&new_join, type, 0);
 	
 	PHALCON_OBS_VAR(params);
 	phalcon_read_property_this(&params, this_ptr, SL("_params"), PH_NOISY TSRMLS_CC);
 	if (phalcon_array_isset_string(params, SS("joins"))) {
-	
+
+		PHALCON_INIT_VAR(new_join_array);
+		array_init_size(new_join_array, 1);
+		phalcon_array_append(&new_join_array, new_join, 0);
+
 		PHALCON_OBS_VAR(current_joins);
 		phalcon_array_fetch_string(&current_joins, params, SL("joins"), PH_NOISY);
 		if (Z_TYPE_P(current_joins) == IS_ARRAY) { 
 			PHALCON_INIT_VAR(merged_joins);
-			phalcon_fast_array_merge(merged_joins, &current_joins, &join TSRMLS_CC);
+			phalcon_fast_array_merge(merged_joins, &current_joins, &new_join_array TSRMLS_CC);
 		} else {
-			PHALCON_CPY_WRT(merged_joins, join);
+			PHALCON_CPY_WRT(merged_joins, new_join_array);
 		}
 	} else {
 		PHALCON_INIT_NVAR(merged_joins);
 		array_init_size(merged_joins, 1);
-		phalcon_array_append(&merged_joins, join, PH_SEPARATE);
+		phalcon_array_append(&merged_joins, new_join, PH_SEPARATE);
 	}
 	
 	phalcon_update_property_array_string(this_ptr, SL("_params"), SS("joins"), merged_joins TSRMLS_CC);
@@ -496,8 +514,8 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, leftJoin){
  */
 PHP_METHOD(Phalcon_Mvc_Model_Criteria, rightJoin){
 
-	zval *model, *conditions = NULL, *alias = NULL, *type, *join, *params;
-	zval *current_joins, *merged_joins = NULL;
+	zval *model, *conditions = NULL, *alias = NULL, *type, *new_join, *params;
+	zval *current_joins, *merged_joins = NULL, *new_join_array = NULL;
 
 	PHALCON_MM_GROW();
 
@@ -514,29 +532,33 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, rightJoin){
 	PHALCON_INIT_VAR(type);
 	ZVAL_STRING(type, "RIGHT", 1);
 	
-	PHALCON_INIT_VAR(join);
-	array_init_size(join, 4);
-	phalcon_array_append(&join, model, 0);
-	phalcon_array_append(&join, conditions, 0);
-	phalcon_array_append(&join, alias, 0);
-	phalcon_array_append(&join, type, 0);
+	PHALCON_INIT_VAR(new_join);
+	array_init_size(new_join, 4);
+	phalcon_array_append(&new_join, model, 0);
+	phalcon_array_append(&new_join, conditions, 0);
+	phalcon_array_append(&new_join, alias, 0);
+	phalcon_array_append(&new_join, type, 0);
 	
 	PHALCON_OBS_VAR(params);
 	phalcon_read_property_this(&params, this_ptr, SL("_params"), PH_NOISY TSRMLS_CC);
 	if (phalcon_array_isset_string(params, SS("joins"))) {
-	
+
+		PHALCON_INIT_VAR(new_join_array);
+		array_init_size(new_join_array, 1);
+		phalcon_array_append(&new_join_array, new_join, 0);
+
 		PHALCON_OBS_VAR(current_joins);
 		phalcon_array_fetch_string(&current_joins, params, SL("joins"), PH_NOISY);
 		if (Z_TYPE_P(current_joins) == IS_ARRAY) { 
 			PHALCON_INIT_VAR(merged_joins);
-			phalcon_fast_array_merge(merged_joins, &current_joins, &join TSRMLS_CC);
+			phalcon_fast_array_merge(merged_joins, &current_joins, &new_join_array TSRMLS_CC);
 		} else {
-			PHALCON_CPY_WRT(merged_joins, join);
+			PHALCON_CPY_WRT(merged_joins, new_join_array);
 		}
 	} else {
 		PHALCON_INIT_NVAR(merged_joins);
 		array_init_size(merged_joins, 1);
-		phalcon_array_append(&merged_joins, join, PH_SEPARATE);
+		phalcon_array_append(&merged_joins, new_join, PH_SEPARATE);
 	}
 	
 	phalcon_update_property_array_string(this_ptr, SL("_params"), SS("joins"), merged_joins TSRMLS_CC);
@@ -1460,3 +1482,26 @@ PHP_METHOD(Phalcon_Mvc_Model_Criteria, execute){
 	
 	PHALCON_MM_RESTORE();
 }
+
+/**
+ * Sets the cache options in the criteria
+ * This method replaces all previously set cache options
+ *
+ * @param array $options
+ * @return Phalcon\Mvc\Model\CriteriaInterface
+ */
+PHP_METHOD(Phalcon_Mvc_Model_Criteria, cache){
+
+	zval *options;
+
+	phalcon_fetch_params(0, 1, 0, &options);
+	
+	if (Z_TYPE_P(options) != IS_ARRAY) { 
+		PHALCON_THROW_EXCEPTION_STRW(phalcon_mvc_model_exception_ce, "Cache options must be an Array");
+		return;
+	}
+	phalcon_update_property_array_string(this_ptr, SL("_params"), SS("cache"), options TSRMLS_CC);
+	
+	RETURN_THISW();
+}
+
