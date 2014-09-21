@@ -64,6 +64,9 @@ PHP_METHOD(Phalcon_Session_Bag, __get);
 PHP_METHOD(Phalcon_Session_Bag, remove);
 PHP_METHOD(Phalcon_Session_Bag, getIterator);
 PHP_METHOD(Phalcon_Session_Bag, count);
+#if PHP_VERSION_ID < 50400
+PHP_METHOD(Phalcon_Session_Bag, __set);
+#endif
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_phalcon_session_bag___construct, 0, 0, 1)
 	ZEND_ARG_INFO(0, name)
@@ -81,7 +84,11 @@ static const zend_function_entry phalcon_session_bag_method_entry[] = {
 	PHP_ME(Phalcon_Session_Bag, remove, arginfo_phalcon_session_baginterface_remove, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Bag, getIterator, arginfo_iteratoraggregate_getiterator, ZEND_ACC_PUBLIC)
 	PHP_ME(Phalcon_Session_Bag, __get, arginfo___getref, ZEND_ACC_PUBLIC)
+#if PHP_VERSION_ID < 50400
+	PHP_ME(Phalcon_Session_Bag, __set, arginfo___set, ZEND_ACC_PUBLIC)
+#else
 	PHP_MALIAS(Phalcon_Session_Bag, __set, set, arginfo___set, ZEND_ACC_PUBLIC)
+#endif
 	PHP_MALIAS(Phalcon_Session_Bag, __isset, has, arginfo___isset, ZEND_ACC_PUBLIC)
 	PHP_MALIAS(Phalcon_Session_Bag, __unset, remove, arginfo___unset, ZEND_ACC_PUBLIC)
 	PHP_MALIAS(Phalcon_Session_Bag, offsetGet, __get, arginfo_arrayaccess_offsetgetref, ZEND_ACC_PUBLIC)
@@ -318,6 +325,13 @@ PHP_METHOD(Phalcon_Session_Bag, set){
 		PHALCON_CALL_METHODW(NULL, session, "__set", name, data);
 	//}
 }
+
+#if PHP_VERSION_ID < 50400
+PHP_METHOD(Phalcon_Session_Bag, __set)
+{
+	PHP_MN(Phalcon_Session_Bag_set)(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+}
+#endif
 
 /**
  * Magic setter to assign values to the session bag.
