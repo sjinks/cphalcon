@@ -1,4 +1,3 @@
-
 /*
   +------------------------------------------------------------------------+
   | Phalcon Framework                                                      |
@@ -17,7 +16,6 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
 #include "assets/collection.h"
 #include "assets/exception.h"
 #include "assets/resource/css.h"
@@ -452,7 +450,7 @@ PHP_METHOD(Phalcon_Assets_Collection, getTargetPath){
  * Sets a base source path for all the resources in this collection
  *
  * @param string $sourcePath
- * @return Phalcon\Assets\Resource
+ * @return Phalcon\Assets\Collection
  */
 PHP_METHOD(Phalcon_Assets_Collection, setSourcePath){
 
@@ -479,7 +477,7 @@ PHP_METHOD(Phalcon_Assets_Collection, getSourcePath){
  * Sets a target uri for the generated HTML
  *
  * @param string $targetUri
- * @return Phalcon\Assets\Resource
+ * @return Phalcon\Assets\Collection
  */
 PHP_METHOD(Phalcon_Assets_Collection, setTargetUri){
 

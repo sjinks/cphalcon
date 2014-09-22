@@ -17,8 +17,6 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
-
 #include "kernel/hash.h"
 #include "kernel/memory.h"
 
@@ -118,8 +116,6 @@ int phalcon_hash_quick_find(const HashTable *ht, const char *arKey, uint nKeyLen
 void phalcon_get_current_key(zval **key, const HashTable *hash_table, HashPosition *hash_position TSRMLS_DC)
 {
 	Bucket *p;
-
-	PHALCON_INIT_NVAR_PNULL(*key);
 
 	p = hash_position ? (*hash_position) : hash_table->pInternalPointer;
 

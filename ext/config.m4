@@ -1,4 +1,13 @@
 PHP_ARG_ENABLE(phalcon, whether to enable phalcon framework, [ --enable-phalcon   Enable phalcon framework])
+PHP_ARG_WITH(non-free, wheter to enable non-free css and js minifier, [ --without-non-free Disable non-free minifiers], yes, no)
+
+AC_MSG_CHECKING([Include non-free minifiers])
+if test "$PHP_NON_FREE" = "yes"; then
+	AC_DEFINE([PHALCON_NON_FREE], [1], [Whether non-free minifiers are available])
+	AC_MSG_RESULT([yes, css and js])
+else
+	AC_MSG_RESULT([no])
+fi
 
 if test "$PHP_PHALCON" = "yes"; then
 	AC_DEFINE(HAVE_PHALCON, 1, [Whether you have Phalcon Framework])
@@ -12,6 +21,7 @@ kernel/object.c \
 kernel/array.c \
 kernel/hash.c \
 kernel/string.c \
+kernel/mbstring.c \
 kernel/filter.c \
 kernel/operators.c \
 kernel/concat.c \
@@ -200,6 +210,7 @@ mvc/model/transactioninterface.c \
 config/adapter/ini.c \
 config/adapter/json.c \
 config/adapter/php.c \
+config/adapter/yaml.c \
 config/exception.c \
 filterinterface.c \
 logger/multiple.c \
@@ -272,6 +283,8 @@ session/exception.c \
 session/baginterface.c \
 session/adapterinterface.c \
 session/adapter.c \
+session/adapter/memcache.c \
+session/adapter/libmemcached.c \
 diinterface.c \
 escaper.c \
 crypt/exception.c \
@@ -319,10 +332,12 @@ translate/adapter/nativearray.c \
 translate/exception.c \
 translate/adapterinterface.c \
 translate/adapter.c \
+translate/adapter/gettext.c \
 validation/validatorinterface.c \
 validation/message/group.c \
 validation/exception.c \
 validation/message.c \
+validation/messageinterface.c \
 validation/validator/email.c \
 validation/validator/presenceof.c \
 validation/validator/confirmation.c \
@@ -334,8 +349,6 @@ validation/validator/inclusionin.c \
 validation/validator/stringlength.c \
 validation/validator/url.c \
 validation/validator.c \
-assets/filters/jsminifier.c \
-assets/filters/cssminifier.c \
 mvc/model/query/parser.c \
 mvc/model/query/scanner.c \
 mvc/view/engine/volt/parser.c \
@@ -357,6 +370,13 @@ psr/log/loggertrait.c \
 psr/log/loglevel.c \
 psr/log/nulllogger.c \
 registry.c"
+
+	AC_MSG_CHECKING([Include non-free minifiers])
+	if test "$PHP_NON_FREE" = "yes"; then
+		phalcon_sources="$phalcon_sources assets/filters/jsminifier.c assets/filters/cssminifier.c "
+	else
+		phalcon_sources="$phalcon_sources assets/filters/nojsminifier.c assets/filters/nocssminifier.c "
+	fi
 
 	PHP_NEW_EXTENSION(phalcon, $phalcon_sources, $ext_shared)
 	PHP_ADD_EXTENSION_DEP([phalcon], [spl])
@@ -393,22 +413,16 @@ registry.c"
 		[[#include "php_config.h"]]
 	)
 
-	AC_CHECK_DECL(
-		[HAVE_JSON],
+	AC_CHECK_HEADERS(
+		[ext/json/php_json.h],
 		[
-			AC_CHECK_HEADERS(
-				[ext/json/php_json.h],
-				[
-					PHP_ADD_EXTENSION_DEP([phalcon], [json])
-					AC_DEFINE([PHALCON_USE_PHP_JSON], [1], [Whether PHP json extension is present at compile time])
-				],
-				,
-				[[#include "main/php.h"]]
-			)
+			PHP_ADD_EXTENSION_DEP([phalcon], [json])
+			AC_DEFINE([PHALCON_USE_PHP_JSON], [1], [Whether PHP json extension is present at compile time])
 		],
 		,
-		[[#include "php_config.h"]]
+		[[#include "main/php.h"]]
 	)
+
 
 	AC_CHECK_DECL(
 		[HAVE_PHP_SESSION],

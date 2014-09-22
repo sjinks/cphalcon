@@ -1,3 +1,16 @@
+1.3.3
+ - Fix segmentation fault in zim_Phalcon_Http_Request_getBasicAuth (#2819)
+
+1.3.1
+ - Fixed segfault in Phalcon\Di\Service::resolve when string class does not exist (#2205)
+ - Moved global zvals to RINIT/RSHUTDOWN to improve stability on Windows TS builds
+ - Moved pre-allocated frames to RINIT/RSHUTDOWN to improve stability on Windows TS builds
+ - Fixed segfault when replacing Phalcon\Session adapter by PHP userland adapter
+ - Fixed zval invalid indirection in Phalcon\Security hash
+ - Fixed segfault when passing an invalid number of arguments to Phalcon\Annotations\Reader::parseDocBlock
+ - Private and Protected properties weren't unmangled in Phalcon\Annotations\Reader
+ - First character of controller name was removed when isExactHandler flag is on
+
 1.3.0
  - Make the source code compatible with PHP 5.6-dev and PHP 5.7-dev (#1762)
  - Code cleanup: get rid of compiler warnings, dead code elimination, code deduplication, use static code analysers to eliminate possible bugs
@@ -85,6 +98,7 @@
    - Added increment() and decrement() methods (#1374)
    - Added flush() method (#1352)
    - Phalcon\Cache\Backend now implements Phalcon\Cache\BackendInterface (#1852)
+   - Ability to disable key tracking for Memcache/Libmemcached backends (#1550)
  - Phalcon\Config:
    - Faster Phalcon\Config implementation using object handlers (#837, #1277)
    - Phalcon\Config now support numeric properties as well (#837)
@@ -142,6 +156,7 @@
    - Phalcon\Dispatcher optimizations (#782)
    - Added getPreviousControllerName(), getPreviousActionName() (#1462)
    - If an event handler throws an exception, call dispatch:beforeException and break the dispatch loop (#1763)
+   - Phalcon\Dispatcher::_handleException() is invoked regardless whether the event manager is present (#1953)
  - Phalcon\Element:
    - Phalcon\Element::addFilter() incorrectly prepends NULL as the first element (#1019)
  - Phalcon\Escaper:
@@ -255,6 +270,7 @@
    - Implemented reset() for metadata adapters other than memory (#1934)
    - Relaxed the requirement for the route to start with a slash (#1938)
    - Phalcon\Mvc\Router\Group: merge slashes when the route prefix ends and the route pattern starts with a slash (#1938)
+   - Phalcon\Mvc\Model\Criteria::fromInput() now works with column maps (#1903)
  - Phalcon\Paginator:
    - Phalcon\Paginator\Adapter\Model returns correct results even when page number is incorrect (#1654)
    - Optimized Phalcon\Paginator\Adapter\QueryBuilder (#1632)
@@ -297,6 +313,7 @@
    - Fixed inconsistency in Tag::stylesheetLink/javascriptInclude w.r.t. local URLs (#1486)
  - Phalcon\Translate:
    - Optimized Phalcon\Translate\Adapter, Phalcon\Translate\Adapter\NativeArray by using object handlers (#1668)
+   - Phalcon\Translate\Adapter\NativeArray::query() now replaces placeholders even if the string is not found in the language content (#2044)
  - Phalcon\Validation:
    - Added support for error codes (#1171)
    - Bug fixes (#1399)
@@ -321,6 +338,9 @@
  - Refactored, improved and optimized build script (#1218)
  - Other bug fixes (#1051, #1131, #1040, #1275, #1392, #1396, #1399, #1425, #1426...)
 
+1.2.6
+ - Phalcon\Security::checkHash() now correctly handles non-bcrypt hashes (#1912)
+
 1.2.5
  - Http\Cookie::__toString() will not throw exceptions (#1427)
  - Phalcon\Http\Cookie::__toString() will return a string value (#1428)
@@ -339,6 +359,15 @@
  - Fix Phalcon\Session\Bag::remove() (#1637)
  - Bug fixes in beanstalkd protocol implementation
  - Phalcon\Paginator\Adapter\Model returns correct results even when page number is incorrect (#1654)
+ - Bug fix: no arguments were passed to beforeMatch handler in Phalcon\Mvc\Router (#1556)
+ - Phalcon\Logger\Adapter::setLogLevel() is honored by transactions (#1716)
+ - Bug fixes in Phalcon\Db\Adapter\Pdo::describeColumns() (#1562)
+ - Phalcon\Session\Adapter::__destruct() now calls session_write_close() (#1624)
+ - Volt: fixed bug in email_filed() (#1723)
+ - Fixed PHP Notices in Phalcon\Debug::onUncaughtException() (#1683)
+ - Phalcon\Logger\Adapter::commit() clears the queue (#1748)
+ - Constant-time string comparison in Phalcon\Security::checkHash() (#1755)
+ - Fix phalcon_escape_multi() to generate valid UTF-8 (#1681)
 
 1.2.4
  - Fixed broken ACL inheritance (#905)

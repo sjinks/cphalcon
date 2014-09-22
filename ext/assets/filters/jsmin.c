@@ -17,10 +17,12 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
-
 #include "assets/filters/jsmin.h"
+#ifdef PHALCON_NON_FREE
 #include "assets/filters/jsminifier.h"
+#else
+#include "assets/filters/nojsminifier.h"
+#endif
 #include "assets/filterinterface.h"
 
 #include "kernel/main.h"

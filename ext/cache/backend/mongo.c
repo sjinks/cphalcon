@@ -17,14 +17,12 @@
   +------------------------------------------------------------------------+
 */
 
-#include "php_phalcon.h"
-
-#include <ext/standard/php_rand.h>
-
 #include "cache/backend/mongo.h"
 #include "cache/backend.h"
 #include "cache/backendinterface.h"
 #include "cache/exception.h"
+
+#include <ext/standard/php_rand.h>
 
 #include "kernel/main.h"
 #include "kernel/memory.h"
@@ -189,7 +187,7 @@ PHP_METHOD(Phalcon_Cache_Backend_Mongo, _getCollection){
 				return;
 			}
 	
-			ce0 = zend_fetch_class(SL("Mongo"), ZEND_FETCH_CLASS_AUTO TSRMLS_CC);
+			ce0 = zend_fetch_class(SL("MongoClient"), ZEND_FETCH_CLASS_AUTO TSRMLS_CC);
 	
 			PHALCON_INIT_VAR(mongo);
 			object_init_ex(mongo, ce0);

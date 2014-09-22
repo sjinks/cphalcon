@@ -206,7 +206,7 @@ PHP_METHOD(Phalcon_Session_Bag, getDI){
 PHP_METHOD(Phalcon_Session_Bag, initialize){
 
 	zval *session = NULL, *dependency_injector = NULL, *service;
-	zval *name, **data;
+	zval *name, **data, *tmp = NULL;
 
 	PHALCON_MM_GROW();
 
@@ -214,10 +214,10 @@ PHP_METHOD(Phalcon_Session_Bag, initialize){
 	if (Z_TYPE_P(session) != IS_OBJECT) {
 		dependency_injector = phalcon_fetch_nproperty_this(this_ptr, SL("_dependencyInjector"), PH_NOISY TSRMLS_CC);
 		if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
-	
+
 			dependency_injector = NULL;
 			PHALCON_CALL_CE_STATIC(&dependency_injector, phalcon_di_ce, "getdefault");
-	
+
 			if (Z_TYPE_P(dependency_injector) != IS_OBJECT) {
 				PHALCON_THROW_EXCEPTION_STR(phalcon_session_exception_ce, "A dependency injection object is required to access the 'session' service");
 				return;
@@ -225,23 +225,29 @@ PHP_METHOD(Phalcon_Session_Bag, initialize){
 		}
 
 		PHALCON_VERIFY_INTERFACE_EX(dependency_injector, phalcon_diinterface_ce, phalcon_session_exception_ce, 1);
-	
+
 		PHALCON_INIT_VAR(service);
 		PHALCON_ZVAL_MAYBE_INTERNED_STRING(service, phalcon_interned_session);
-	
+
 		session = NULL;
 		PHALCON_CALL_METHOD(&session, dependency_injector, "getshared", service);
 		PHALCON_VERIFY_INTERFACE(session, phalcon_session_adapterinterface_ce);
 		phalcon_update_property_this(this_ptr, SL("_session"), session TSRMLS_CC);
 	}
-	
+
 	name = phalcon_fetch_nproperty_this(this_ptr, SL("_name"), PH_NOISY TSRMLS_CC);
 
+	/*if (!nusphere_dbg_present) {
 #if PHP_VERSION_ID < 50500
-	data = Z_OBJ_HANDLER_P(session, get_property_ptr_ptr)(session, name ZLK_NULL_CC TSRMLS_CC);
+		data = Z_OBJ_HANDLER_P(session, get_property_ptr_ptr)(session, name ZLK_NULL_CC TSRMLS_CC);
 #else
-	data = Z_OBJ_HANDLER_P(session, get_property_ptr_ptr)(session, name, BP_VAR_W ZLK_NULL_CC TSRMLS_CC);
+		data = Z_OBJ_HANDLER_P(session, get_property_ptr_ptr)(session, name, BP_VAR_W ZLK_NULL_CC TSRMLS_CC);
 #endif
+	}
+	else {*/
+		PHALCON_CALL_METHOD(&tmp, session, "__get", name);
+		data = &tmp;
+	//}
 
 	if (Z_TYPE_PP(data) != IS_ARRAY) {
 		zval *empty_array;
@@ -252,7 +258,7 @@ PHP_METHOD(Phalcon_Session_Bag, initialize){
 	else {
 		phalcon_update_property_this(this_ptr, SL("_data"), *data TSRMLS_CC);
 	}
-	
+
 	phalcon_update_property_bool(this_ptr, SL("_initialized"), 1 TSRMLS_CC);
 	PHALCON_MM_RESTORE();
 }
@@ -269,10 +275,16 @@ PHP_METHOD(Phalcon_Session_Bag, destroy){
 	zval *name, *session;
 
 	RETURN_ON_FAILURE(phalcon_session_bag_maybe_initialize(this_ptr TSRMLS_CC));
-	
+
 	name    = phalcon_fetch_nproperty_this(this_ptr, SL("_name"), PH_NOISY TSRMLS_CC);
 	session = phalcon_fetch_nproperty_this(this_ptr, SL("_session"), PH_NOISY TSRMLS_CC);
-	Z_OBJ_HANDLER_P(session, unset_property)(session, name ZLK_NULL_CC TSRMLS_CC);
+
+	/*if (!nusphere_dbg_present) {
+		Z_OBJ_HANDLER_P(session, unset_property)(session, name ZLK_NULL_CC TSRMLS_CC);
+	}
+	else {*/
+		PHALCON_CALL_METHODW(NULL, session, "__unset", name);
+	//}
 }
 
 /**
@@ -290,15 +302,21 @@ PHP_METHOD(Phalcon_Session_Bag, set){
 	zval *property, *value, *session, *name, *data;
 
 	phalcon_fetch_params(0, 2, 0, &property, &value);
-	
+
 	RETURN_ON_FAILURE(phalcon_session_bag_maybe_initialize(this_ptr TSRMLS_CC));
-	
+
 	phalcon_update_property_array(this_ptr, SL("_data"), property, value TSRMLS_CC);
-	
+
 	name    = phalcon_fetch_nproperty_this(this_ptr, SL("_name"), PH_NOISY TSRMLS_CC);
 	data    = phalcon_fetch_nproperty_this(this_ptr, SL("_data"), PH_NOISY TSRMLS_CC);
 	session = phalcon_fetch_nproperty_this(this_ptr, SL("_session"), PH_NOISY TSRMLS_CC);
-	Z_OBJ_HANDLER_P(session, write_property)(session, name, data ZLK_NULL_CC TSRMLS_CC);
+
+	/*if (!nusphere_dbg_present) {
+		Z_OBJ_HANDLER_P(session, write_property)(session, name, data ZLK_NULL_CC TSRMLS_CC);
+	}
+	else {*/
+		PHALCON_CALL_METHODW(NULL, session, "__set", name, data);
+	//}
 }
 
 /**
@@ -331,14 +349,14 @@ PHP_METHOD(Phalcon_Session_Bag, get){
 	zval *data, *value;
 
 	phalcon_fetch_params(0, 1, 1, &property, &default_value);
-	
+
 	if (!default_value) {
 		default_value = PHALCON_GLOBAL(z_null);
 	}
-	
+
 	/* Check first if the bag is initialized */
 	RETURN_ON_FAILURE(phalcon_session_bag_maybe_initialize(this_ptr TSRMLS_CC));
-	
+
 	/* Retrieve the data */
 	data = phalcon_fetch_nproperty_this(this_ptr, SL("_data"), PH_NOISY TSRMLS_CC);
 	if (phalcon_array_isset_fetch(&value, data, property)) {
@@ -376,11 +394,22 @@ PHP_METHOD(Phalcon_Session_Bag, __get)
 		*return_value_ptr = value;
 	}
 	else {
-		zval *tmp;
+		zval *tmp, *name, *data, *session;
+
 		ALLOC_INIT_ZVAL(tmp);
 		Z_DELREF_P(tmp);
 		phalcon_update_property_array(this_ptr, SL("_data"), property, tmp TSRMLS_CC);
 		*return_value_ptr = tmp;
+
+		name    = phalcon_fetch_nproperty_this(this_ptr, SL("_name"), PH_NOISY TSRMLS_CC);
+		data    = phalcon_fetch_nproperty_this(this_ptr, SL("_data"), PH_NOISY TSRMLS_CC);
+		session = phalcon_fetch_nproperty_this(this_ptr, SL("_session"), PH_NOISY TSRMLS_CC);
+		/*if (!nusphere_dbg_present) {
+			Z_OBJ_HANDLER_P(session, write_property)(session, name, data ZLK_NULL_CC TSRMLS_CC);
+		}
+		else {*/
+			PHALCON_CALL_METHODW(NULL, session, "__set", name, data);
+		//}
 	}
 
 	Z_ADDREF_PP(return_value_ptr);
@@ -403,9 +432,9 @@ PHP_METHOD(Phalcon_Session_Bag, has){
 	zval *property, *data;
 
 	phalcon_fetch_params(0, 1, 0, &property);
-	
+
 	RETURN_ON_FAILURE(phalcon_session_bag_maybe_initialize(this_ptr TSRMLS_CC));
-	
+
 	data = phalcon_fetch_nproperty_this(this_ptr, SL("_data"), PH_NOISY TSRMLS_CC);
 	RETURN_BOOL(phalcon_array_isset(data, property));
 }
@@ -448,10 +477,17 @@ PHP_METHOD(Phalcon_Session_Bag, remove){
 		data    = phalcon_fetch_nproperty_this(this_ptr, SL("_data"), PH_NOISY TSRMLS_CC);
 		name    = phalcon_fetch_nproperty_this(this_ptr, SL("_name"), PH_NOISY TSRMLS_CC);
 		session = phalcon_fetch_nproperty_this(this_ptr, SL("_session"), PH_NOISY TSRMLS_CC);
-		Z_OBJ_HANDLER_P(session, write_property)(session, name, data ZLK_NULL_CC TSRMLS_CC);
+
+		/*if (!nusphere_dbg_present) {
+			Z_OBJ_HANDLER_P(session, write_property)(session, name, data ZLK_NULL_CC TSRMLS_CC);
+		}
+		else {*/
+			PHALCON_CALL_METHODW(NULL, session, "__set", name, data);
+		//}
+
 		RETURN_TRUE;
 	}
-	
+
 	RETURN_FALSE;
 }
 

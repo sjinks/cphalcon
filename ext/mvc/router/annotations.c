@@ -480,6 +480,9 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, processActionAnnotation){
 	} else if (PHALCON_IS_STRING(name, "Put")) {
 		is_route = 1;
 		ZVAL_STRING(methods, phalcon_interned_PUT, !IS_INTERNED(phalcon_interned_PUT));
+	} else if (PHALCON_IS_STRING(name, "Delete")) {
+		is_route = 1;
+		ZVAL_STRING(methods, phalcon_interned_DELETE, !IS_INTERNED(phalcon_interned_DELETE));
 	} else if (PHALCON_IS_STRING(name, "Options")) {
 		is_route = 1;
 		ZVAL_STRING(methods, phalcon_interned_OPTIONS, !IS_INTERNED(phalcon_interned_OPTIONS));
@@ -528,7 +531,7 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, processActionAnnotation){
 		}
 
 		phalcon_array_update_string(&paths, ISL(controller), controller, PH_COPY);
-		phalcon_array_update_string(&paths, ISL(action), action_name, PH_COPY);
+		phalcon_array_update_string(&paths, ISL(action), real_action_name, PH_COPY);
 		phalcon_array_update_string(&paths, SL("\0exact"), PHALCON_GLOBAL(z_true), PH_COPY);
 	
 		PHALCON_INIT_VAR(position);
@@ -544,7 +547,11 @@ PHP_METHOD(Phalcon_Mvc_Router_Annotations, processActionAnnotation){
 				PHALCON_INIT_VAR(uri);
 				PHALCON_CONCAT_VV(uri, route_prefix, value);
 			} else {
-				PHALCON_CPY_WRT(uri, route_prefix);
+				if (Z_TYPE_P(route_prefix) != IS_NULL) {
+					PHALCON_CPY_WRT(uri, route_prefix);
+				} else {
+					PHALCON_CPY_WRT(uri, value);
+				}
 			}
 		} else {
 			PHALCON_INIT_NVAR(uri);

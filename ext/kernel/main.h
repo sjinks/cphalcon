@@ -45,6 +45,10 @@
 #define ISL(str)  (phalcon_interned_##str), (sizeof(#str)-1)
 #define ISS(str)  (phalcon_interned_##str), (sizeof(#str))
 
+/* str_erealloc is PHP 5.6 only */
+#ifndef str_erealloc
+#define str_erealloc erealloc
+#endif
 
 /* Startup functions */
 void php_phalcon_init_globals(zend_phalcon_globals *phalcon_globals TSRMLS_DC);
@@ -207,7 +211,7 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
  * Returns a zval in an object member (quick)
  */
 #define RETURN_MEMBER_QUICK(object, member_name, key) \
- 	phalcon_return_property_quick(return_value, return_value_ptr, object, SL(member_name), key TSRMLS_CC); \
+	phalcon_return_property_quick(return_value, NULL, object, SL(member_name), key TSRMLS_CC); \
 	return;
 
 #define RETURN_ON_FAILURE(what) \
@@ -246,7 +250,10 @@ int phalcon_fetch_parameters_ex(int dummy TSRMLS_DC, int n_req, int n_opt, ...);
 
 /** Get the current hash key without copying the hash key */
 #define PHALCON_GET_HKEY(var, hash, hash_position) \
-	phalcon_get_current_key(&var, hash, &hash_position TSRMLS_CC);
+	do { \
+		PHALCON_INIT_NVAR_PNULL(var); \
+		phalcon_get_current_key(&var, hash, &hash_position TSRMLS_CC); \
+	} while (0)
 
 /** Check if an array is iterable or not */
 #define phalcon_is_iterable(var, array_hash, hash_pointer, duplicate, reverse) \

@@ -3,8 +3,8 @@
 
 return array(
     // Header files
-    'assets/filters/jsminifier.h',
-    'assets/filters/cssminifier.h',
+    'assets/filters/nojsminifier.h',
+    'assets/filters/nocssminifier.h',
     'mvc/model/query/parser.h',
     'mvc/model/query/scanner.h',
     'mvc/model/query/phql.h',
@@ -22,6 +22,7 @@ return array(
     'kernel/hash.h',
     'kernel/object.h',
     'kernel/string.h',
+    'kernel/mbstring.h',
     'kernel/filter.h',
     'kernel/file.h',
     'kernel/output.h',
@@ -35,6 +36,7 @@ return array(
     'kernel/framework/orm.h',
     'kernel/framework/router.h',
     'kernel/framework/url.h',
+    'interned-strings.h',
     // Source files
     'kernel/main.c',
     'kernel/memory.c',
@@ -44,6 +46,7 @@ return array(
     'kernel/hash.c',
     'kernel/object.c',
     'kernel/string.c',
+    'kernel/mbstring.c',
     'kernel/filter.c',
     'kernel/operators.c',
     'kernel/concat.c',
@@ -55,5 +58,6 @@ return array(
     'kernel/session.c',
     'kernel/framework/orm.c',
     'kernel/framework/router.c',
-    'kernel/framework/url.c'
+    'kernel/framework/url.c',
+    'interned-strings.c',
 );

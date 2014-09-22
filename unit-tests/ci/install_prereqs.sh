@@ -4,7 +4,7 @@ DIR=$(readlink -enq $(dirname $0))
 
 sudo apt-get -qq update &
 
-if [ "$(php -r 'echo substr(PHP_VERSION, 0, 3);')" = "5.5" ]; then
+if [ "$(php -r 'echo PHP_VERSION_ID;')" -ge 50500 ]; then
 	( pecl install apcu < /dev/null || ( pecl config-set preferred_state beta; pecl install apcu < /dev/null ) && phpenv config-add "$DIR/apcu.ini" ) &
 else
 	( CFLAGS="-O2 -g3 -fno-strict-aliasing" pecl upgrade apc < /dev/null; phpenv config-add "$DIR/apc.ini" ) &
@@ -12,7 +12,7 @@ fi
 
 CFLAGS="-O1 -g3 -fno-strict-aliasing" pecl install igbinary < /dev/null &
 CFLAGS="-O1 -g3 -fno-strict-aliasing" pecl install imagick < /dev/null &
-#CFLAGS="-O1 -g3 -fno-strict-aliasing" pecl install mongo < /dev/null &
+CFLAGS="-O1 -g3 -fno-strict-aliasing" pecl install yaml < /dev/null &
 ( pecl install weakref < /dev/null || ( pecl config-set preferred_state beta; pecl install weakref < /dev/null ) ) &
 
 wait
